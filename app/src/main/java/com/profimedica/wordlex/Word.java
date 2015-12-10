@@ -5,7 +5,7 @@ package com.profimedica.wordlex;
  */
 
 public class Word{
-    public Word(String Id, String Native, String Foreign, Integer Bad, Integer Good, Long TimeSpend, String Dictionary){
+    public Word(Long Id, String Native, String Foreign, Integer Bad, Integer Good, Long TimeSpend, String Dictionary){
         this.Id = Id;
         this.Native = Native;
         this.Foreign = Foreign;
@@ -15,12 +15,14 @@ public class Word{
             this.TimeSpend = Long.valueOf(TimeSpend);
         }catch(Exception e){}
         this.Dictionary = Dictionary;
+        Unsaved = false;
     }
-    public String Id;
+    public Long Id;
     public String Native;
     public String Foreign;
     public int Bad;
     public int Good;
     public long TimeSpend;
     public String Dictionary;
+    public Boolean Unsaved;
 }

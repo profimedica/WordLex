@@ -6,20 +6,16 @@ import android.content.Context;
 import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.graphics.Color;
-import android.os.Environment;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
 import com.opencsv.CSVReader;
-import com.opencsv.CSVWriter;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -37,15 +33,36 @@ import java.util.Random;
  */
 public class QuizActivity extends AppCompatActivity {
 
+    // Native to foreign or foreign to native
     boolean reverseLanguages = false;
+
+    // Total hits for a language direction
     int totalHits = 0;
+
+    // Total words to be discovered in a difficulty specified level
     int initialWordsCount = 0;
+
+    // Total good answares
     int goodButtonNumber = 0;
-    List<Word> words = new ArrayList<Word>();
+
+    // Words to be discovered
+    List<Word> wordsToBeDiscovered = new ArrayList<>();
+    // Words to be discovered
+    List<Word> wordsAlreadyDiscovered = new ArrayList<>();
+
+    // Holder for the current word in the quiz
     TextView TextToTranslate = null;
+
+    // Current word in the quiz
     Word currentWord = null;
+
+    // The index of the current word used to remove it from the list of words if guessed
     int currentWordIndex = 0;
+
+    // Random nmber generator
     Random rnd = new Random();
+
+    // The 5 option buttons
     Button[] buttons = new Button[5];
 
     TextView SwitchLanguagesButton = null;
@@ -58,8 +75,6 @@ public class QuizActivity extends AppCompatActivity {
 
     TextView GoodLabel = null;
     TextView BadLabel = null;
-    TextView TotalWordsNumber = null;
-    TextView GuesedWordsNumber = null;
     TextView WrongWordsNumber = null;
     TextView LeftWordsLabel = null;
     int leftWordsNumber = 0;
@@ -130,8 +145,8 @@ public class QuizActivity extends AppCompatActivity {
 
     private void FilterRecords(int i) {
         ReadSQL(this, "", i);
-        initialWordsCount = words.size(); //TODO count unanswared
-        currentWord = CreateQuiz(words);
+        initialWordsCount = wordsToBeDiscovered.size(); //TODO count unanswared
+        currentWord = CreateQuiz(wordsToBeDiscovered);
         leftWordsNumber = initialWordsCount;
         LeftWordsLabel.setText(String.valueOf(leftWordsNumber));
         totalHits=0;
@@ -156,11 +171,12 @@ public class QuizActivity extends AppCompatActivity {
 
     private void FillStatistics(boolean guessed) {
         totalHits++;
-
+        currentWord.Unsaved = true;
         if(guessed)
         {
             leftWordsNumber--;
-            // words.remove(currentWordIndex);
+            wordsToBeDiscovered.remove(currentWord);
+            wordsAlreadyDiscovered.add(currentWord);
             currentWord.Good++;
             //LastTranslation.setTextColor(Color.GREEN);
         }
@@ -174,7 +190,7 @@ public class QuizActivity extends AppCompatActivity {
         LeftWordsLabel.setText(String.valueOf(leftWordsNumber));
         //LastTranslation.setText(String.valueOf(currentWord.Native + " = " + currentWord.Foreign));
 
-        currentWord = CreateQuiz(words);
+        currentWord = CreateQuiz(wordsToBeDiscovered);
         //LastTranslation.invalidate();
     }
 
@@ -210,51 +226,83 @@ public class QuizActivity extends AppCompatActivity {
         return words.get(currentWordIndex);
     }
 
-    public boolean WriteCSV(Context context, List<Word> words, String fileName) {
+    public long getLastInsertId(SQLiteDatabase db, String tablename) {
+        String query = "SELECT " + WordReaderContract.WordEntry.COLUMN_NAME_ENTRY_ID + " FROM " + WordReaderContract.WordEntry.TABLE_NAME + " ORDER BY " + WordReaderContract.WordEntry.COLUMN_NAME_ENTRY_ID + "  DESC LIMIT 1";
+        long index = -1;
+        Cursor c = db.rawQuery(query, null);
+        if (c != null && c.moveToFirst()) {
+            index = c.getLong(0); //The 0 is the column index, we only have 1 column, so the index is 0
+        }
+        c.close();
+        return index;
+        /*
+        Cursor cursor = db.query(
+                "sqlite_sequence",
+                new String[]{"seq"},
+                "name = ?",
+                new String[]{tablename},
+                null,
+                null,
+                null,
+                null
+        );
+        if (cursor.moveToFirst()) {
+            index = cursor.getLong(cursor.getColumnIndex("seq"));
+        }
+        */
+    }
+
+    private void WriteWordInDatabase(SQLiteDatabase db, Word word)
+    {
+        // Create a new map of values, where column names are the keys
+        if(word.Id == null) {
+            String SQL = "INSERT INTO " + WordReaderContract.WordEntry.TABLE_NAME +
+            " (" +
+            WordReaderContract.WordEntry.COLUMN_NAME_NATIVE + " , " +
+            WordReaderContract.WordEntry.COLUMN_NAME_FOREIGN + " , " +
+            WordReaderContract.WordEntry.COLUMN_NAME_GOOD + " , " +
+            WordReaderContract.WordEntry.COLUMN_NAME_BAD + " , " +
+            WordReaderContract.WordEntry.COLUMN_NAME_SPENT + " , " +
+            WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY +
+            " ) VALUES ( '" +
+                    word.Native + "' , '" +
+                    word.Foreign + "' , " +
+                    word.Good + " , " +
+                    word.Bad + " , " +
+                    word.TimeSpend + " , '" +
+                    word.Dictionary +
+                    "' ) ";
+            db.execSQL(SQL);
+            word.Id = getLastInsertId(db, WordReaderContract.WordEntry.TABLE_NAME);
+        }
+        else {
+            String SQL = "UPDATE TABLE " + WordReaderContract.WordEntry.TABLE_NAME +
+                    " SET " +
+            WordReaderContract.WordEntry.COLUMN_NAME_NATIVE + " = " + word.Native + " , " +
+            WordReaderContract.WordEntry.COLUMN_NAME_FOREIGN + " = " + word.Foreign + " , " +
+            WordReaderContract.WordEntry.COLUMN_NAME_GOOD + " = " + word.Good + " , " +
+            WordReaderContract.WordEntry.COLUMN_NAME_BAD + " = " + word.Bad + " , " +
+            WordReaderContract.WordEntry.COLUMN_NAME_SPENT + " = " + word.TimeSpend + " , " +
+            WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY + " = " + word.Dictionary + " WHERE " +
+                    WordReaderContract.WordEntry.COLUMN_NAME_ENTRY_ID + " = " + word.Id;
+            db.execSQL(SQL);
+        }
+    }
+
+    public boolean WriteSQL(Context context, String fileName) {
         WordReaderDbHelper mDbHelper = new WordReaderDbHelper(this);
         // Gets the data repository in write mode
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
 
-        for(Iterator<Word> i = words.iterator(); i.hasNext(); ) {
+        for(Iterator<Word> i = wordsToBeDiscovered.iterator(); i.hasNext(); ) {
             Word word = i.next();
-
-            // Create a new map of values, where column names are the keys
-            if(word.Id == null) {
-                ContentValues values = new ContentValues();
-                values.put(WordReaderContract.WordEntry.COLUMN_NAME_NATIVE, word.Native);
-                values.put(WordReaderContract.WordEntry.COLUMN_NAME_FOREIGN, word.Foreign);
-                values.put(WordReaderContract.WordEntry.COLUMN_NAME_GOOD, word.Good);
-                values.put(WordReaderContract.WordEntry.COLUMN_NAME_BAD, word.Bad);
-                values.put(WordReaderContract.WordEntry.COLUMN_NAME_SPENT, word.TimeSpend);
-                values.put(WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY, word.Dictionary);
-
-                // Insert the new row, returning the primary key value of the new row
-                long newRowId;
-
-                newRowId = db.insert(
-                        WordReaderContract.WordEntry.TABLE_NAME,
-                        null,
-                        values);
+            if(word.Unsaved) {
+                WriteWordInDatabase(db, word);
             }
-            else {
-                ContentValues values = new ContentValues();
-                values.put(WordReaderContract.WordEntry._ID, word.Id);
-                values.put(WordReaderContract.WordEntry.COLUMN_NAME_NATIVE, word.Native);
-                values.put(WordReaderContract.WordEntry.COLUMN_NAME_FOREIGN, word.Foreign);
-                values.put(WordReaderContract.WordEntry.COLUMN_NAME_GOOD, word.Good);
-                values.put(WordReaderContract.WordEntry.COLUMN_NAME_BAD, word.Bad);
-                values.put(WordReaderContract.WordEntry.COLUMN_NAME_SPENT, word.TimeSpend);
-                values.put(WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY, word.Dictionary);
-
-                // Insert the new row, returning the primary key value of the new row
-                long newRowId;
-
-                newRowId = db.update(
-                        WordReaderContract.WordEntry.TABLE_NAME,
-                        values,
-                        " WHERE 'id' == " + WordReaderContract.WordEntry._ID + " ", null
-                );
-            }
+        }
+        for(Iterator<Word> i = wordsAlreadyDiscovered.iterator(); i.hasNext(); ) {
+            Word word = i.next();
+            WriteWordInDatabase(db, word);
         }
         return true;
     }
@@ -269,37 +317,38 @@ public class QuizActivity extends AppCompatActivity {
     }
 
     public List<Word> ReadSQL(Context context, String tableName, int difficulty){
-        words.clear();
-            WordReaderDbHelper mDbHelper = new WordReaderDbHelper(this);
-            SQLiteDatabase db = mDbHelper.getReadableDatabase();
-
-
-            // Define a projection that specifies which columns from the database
-        // you will actually use after this query.
-        String[] projection = {
-                WordReaderContract.WordEntry._ID,
-                WordReaderContract.WordEntry.COLUMN_NAME_NATIVE,
-                WordReaderContract.WordEntry.COLUMN_NAME_FOREIGN,
-                WordReaderContract.WordEntry.COLUMN_NAME_BAD,
-                WordReaderContract.WordEntry.COLUMN_NAME_GOOD,
-                WordReaderContract.WordEntry.COLUMN_NAME_SPENT,
-                WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY
-        };
-
+        wordsAlreadyDiscovered.clear();
+        wordsToBeDiscovered.clear();
+        WordReaderDbHelper mDbHelper = new WordReaderDbHelper(this);
+        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        String SQL = "SELECT " +
+                WordReaderContract.WordEntry.COLUMN_NAME_ENTRY_ID + " , " +
+                WordReaderContract.WordEntry.COLUMN_NAME_NATIVE + " , " +
+                WordReaderContract.WordEntry.COLUMN_NAME_FOREIGN + " , " +
+                WordReaderContract.WordEntry.COLUMN_NAME_GOOD + " , " +
+                WordReaderContract.WordEntry.COLUMN_NAME_BAD + " , " +
+                WordReaderContract.WordEntry.COLUMN_NAME_SPENT + " , " +
+                WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY +
+                " FROM " + WordReaderContract.WordEntry.TABLE_NAME +
+                " WHERE " +  WordReaderContract.WordEntry.COLUMN_NAME_BAD +
+                " >= " + difficulty + " ORDER BY " +
+                WordReaderContract.WordEntry.COLUMN_NAME_BAD + " DESC";
+        Cursor cursor = db.rawQuery(SQL, null);
+    /*
         // How you want the results sorted in the resulting Cursor
         String sortOrder =
-                WordReaderContract.WordEntry.COLUMN_NAME_BAD + " DESC";
+
 
         Cursor cursor = db.query(
                 WordReaderContract.WordEntry.TABLE_NAME,  // The table to query
                 projection,                               // The columns to return
-                WordReaderContract.WordEntry.COLUMN_NAME_BAD + " >= difficulty",                                // The columns for the WHERE clause
+                WordReaderContract.WordEntry.COLUMN_NAME_BAD + " >= " +difficulty,                                // The columns for the WHERE clause
                 null,                            // The values for the WHERE clause
                 null,                                     // don't group the rows
                 null,                                     // don't filter by row groups
                 sortOrder                                 // The sort order
         );
-
+*/
         cursor.moveToFirst();
         //long itemId = cursor.getLong(
         //        cursor.getColumnIndexOrThrow(WordReaderContract.WordEntry._ID)
@@ -308,18 +357,25 @@ public class QuizActivity extends AppCompatActivity {
 
         while(cursor.isAfterLast() == false){
             Word word = new Word(
-                    cursor.getString(cursor.getColumnIndex(WordReaderContract.WordEntry._ID)),
+                    /*cursor.getLong(cursor.getColumnIndex(WordReaderContract.WordEntry.COLUMN_NAME_ENTRY_ID)),
                     cursor.getString(cursor.getColumnIndex(WordReaderContract.WordEntry.COLUMN_NAME_NATIVE)),
                     cursor.getString(cursor.getColumnIndex(WordReaderContract.WordEntry.COLUMN_NAME_FOREIGN)),
                     cursor.getInt(cursor.getColumnIndex(WordReaderContract.WordEntry.COLUMN_NAME_GOOD)),
                     cursor.getInt(cursor.getColumnIndex(WordReaderContract.WordEntry.COLUMN_NAME_BAD)),
                     cursor.getLong(cursor.getColumnIndex(WordReaderContract.WordEntry.COLUMN_NAME_SPENT)),
-                    cursor.getString(cursor.getColumnIndex(WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY))
-                    );
-            words.add(word);
+                    cursor.getString(cursor.getColumnIndex(WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY))*/
+                    cursor.getLong(0),
+                    cursor.getString(1),
+                    cursor.getString(2),
+                    cursor.getInt(3),
+                    cursor.getInt(4),
+                    cursor.getLong(5),
+                    cursor.getString(6)
+            );
+            wordsToBeDiscovered.add(word);
             cursor.moveToNext();
         }
-        return words;
+        return wordsToBeDiscovered;
     }
 
     public List<Word> ReadCSV(Context context, String fileName) {
@@ -338,18 +394,19 @@ public class QuizActivity extends AppCompatActivity {
             while ((line = csvReader.readNext()) != null) {
                 questionList.add(line);
                 Word word = new Word(null, line[1], line[2], 0, 0, Long.valueOf(0), "FrEn");
-                words.add(word);
+                word.Unsaved = true;
+                wordsToBeDiscovered.add(word);
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        return words;
+        return wordsToBeDiscovered;
     }
 
     protected void onDestroy() {
 
-       // WriteCSV(this, words, "Saved");
+        // WriteCSV(this, words, "Saved");
         super.onDestroy();
     }
 
@@ -449,7 +506,10 @@ public class QuizActivity extends AppCompatActivity {
         Difficulty1Button = (TextView)findViewById(R.id.difficulty_1_button);
         Difficulty3Button = (TextView)findViewById(R.id.difficulty_3_button);
         Difficulty5Button = (TextView)findViewById(R.id.difficulty_5_button);
-
+        Difficulty0Button.setOnClickListener(difficulty0ButtonListener);
+        Difficulty1Button.setOnClickListener(difficulty1ButtonListener);
+        Difficulty3Button.setOnClickListener(difficulty3ButtonListener);
+        Difficulty5Button.setOnClickListener(difficulty5ButtonListener);
         //View rootView = inflater.inflate(R.layout.fragment_quiz, container, false);
         //TextView textView = (TextView) rootView.findViewById(R.id.section_label);
         //textView.setText(getString(R.string.section_format, getArguments().getInt(ARG_SECTION_NUMBER)));
@@ -477,7 +537,8 @@ public class QuizActivity extends AppCompatActivity {
 
         EmptyTable(this, "Basic");
         ReadCSV(this, "Basic");
-        WriteCSV(this, words, "Saved");
+        WriteSQL(this, "Saved");
+        ReadSQL(this, "", 0);
         FilterRecords(0);
         //return rootView;
 

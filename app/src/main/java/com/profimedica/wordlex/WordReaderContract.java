@@ -12,13 +12,13 @@ public final class WordReaderContract {
 
     /* Inner class that defines the table contents */
     public static abstract class WordEntry implements BaseColumns {
-        public static final String TABLE_NAME = "'word'";
-        public static final String COLUMN_NAME_ENTRY_ID = "'id'";
-        public static final String COLUMN_NAME_NATIVE = "'native'";
-        public static final String COLUMN_NAME_FOREIGN = "'foreign'";
-        public static final String COLUMN_NAME_GOOD = "'good'";
-        public static final String COLUMN_NAME_BAD = "'bad'";
-        public static final String COLUMN_NAME_SPENT = "'spent'";
-        public static final String COLUMN_NAME_DICTIONARY = "'dictionary'";
+        public static final String TABLE_NAME = "`word`";
+        public static final String COLUMN_NAME_ENTRY_ID = "`id`";
+        public static final String COLUMN_NAME_NATIVE = "`native`";
+        public static final String COLUMN_NAME_FOREIGN = "`foreign`";
+        public static final String COLUMN_NAME_GOOD = "`good`";
+        public static final String COLUMN_NAME_BAD = "`bad`";
+        public static final String COLUMN_NAME_SPENT = "`spent`";
+        public static final String COLUMN_NAME_DICTIONARY = "`dictionary`";
     }
 }

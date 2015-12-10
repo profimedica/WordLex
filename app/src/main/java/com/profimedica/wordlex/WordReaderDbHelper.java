@@ -13,8 +13,7 @@ import android.database.sqlite.SQLiteOpenHelper;
     private static final String COMMA_SEP = ",";
     private static final String SQL_CREATE_ENTRIES =
         "CREATE TABLE " + WordReaderContract.WordEntry.TABLE_NAME + " (" +
-        WordReaderContract.WordEntry._ID + " INTEGER PRIMARY KEY," +
-        WordReaderContract.WordEntry.COLUMN_NAME_ENTRY_ID + INT_TYPE + COMMA_SEP +
+        WordReaderContract.WordEntry.COLUMN_NAME_ENTRY_ID + " INTEGER PRIMARY KEY," +
         WordReaderContract.WordEntry.COLUMN_NAME_NATIVE + TEXT_TYPE + COMMA_SEP +
         WordReaderContract.WordEntry.COLUMN_NAME_FOREIGN + TEXT_TYPE + COMMA_SEP +
         WordReaderContract.WordEntry.COLUMN_NAME_GOOD + INT_TYPE + COMMA_SEP +
