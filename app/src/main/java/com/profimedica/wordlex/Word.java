@@ -1,10 +1,16 @@
 package com.profimedica.wordlex;
 
+import java.util.Comparator;
+
 /**
  * Created by Cumpanasu on 11/23/2015.
  */
 
-public class Word{
+public class Word implements Comparable<Word> {
+    @Override
+    public int compareTo(Word o2) {
+        return this.Bad - o2.Bad;
+    }
     public Word(Long Id, String Native, String Foreign, Integer Bad, Integer Good, Long TimeSpend, String Dictionary){
         this.Id = Id;
         this.Native = Native;

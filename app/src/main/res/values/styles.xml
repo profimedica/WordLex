@@ -32,4 +32,13 @@
         <item name="android:paddingTop">@dimen/button_content_paddingTop</item>
         <item name="android:paddingBottom">@dimen/button_content_paddingBottom</item>
     </style>
+
+    <style name="AppTheme.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 </resources>

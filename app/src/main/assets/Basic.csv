@@ -12,7 +12,7 @@
 12.,et,and,conjunction
 13.,à,in; to; with,preposition
 14.,un,a; an; one (used before a masculine singular noun) (see #26; 31),indefinite article
-15.,l',the (used instead of ''le'' or ''la'' before nouns that begin with a vowel) (see #7; 8; 18),definite article; personal pronoun
+15.,l,the
 16.,qui,who; whom; that; which,relative pronoun; interrogative pronoun
 17.,aller,to go,verb
 18.,les,the; them (referring to a plural noun) (see #7; 8; 15),definite article; personal pronoun
@@ -25,7 +25,7 @@
 25.,ce,this; that (see #73; 99; 201),demonstrative pronoun; demonstrative adjective
 26.,une,a; an; one (used before a feminine singular noun); french.languagedaily.com (see #14; 31),indefinite article
 27.,mes,my (used before plural nouns) (see #50; 108),possessive adjective
-28.,d',of; from; by; than; in; with (used before a vowel or mute h) (see #4),preposition
+28.,d,of; from; by; than; in; with (used before a vowel or mute h) (see #4),preposition
 29.,pour,for,preposition
 30.,se,himself; herself; themselves (see #60),personal pronoun
 31.,des,some (used before a plural noun) (see #14; 26),indefinite article
@@ -41,7 +41,7 @@
 41.,du,(de + le/les) = of the; from the,definite article
 42.,où,where; that,relative pronoun; interrogative pronoun
 43.,y,it; there,personal pronoun
-44.,t',you; yourself (shortened form used before a vowel),personal pronoun
+44.,t,you; yourself (shortened form used before a vowel),personal pronoun
 45.,bien,well; very; good,adverb; noun
 46.,voir,to see,verb
 47.,plus,more,adverb
@@ -57,7 +57,7 @@
 57.,oui,yes,adverb
 58.,ils,they (refers to a group of masculine or mixed masculine/feminine nouns),personal pronoun
 59.,comme,as; like; how; same,conjunction; adverb
-60.,s',himself; herself; themselves (variation of "se" used before a word starting with a vowel or mute h),personal pronoun; conjunction
+60.,s,himself; herself; themselves (variation of "se" used before a word starting with a vowel or mute h),personal pronoun; conjunction
 61.,venir,to come; occur,verb
 62.,sur,on; upon; over (preposition); sour (adjective),preposition; adjective
 63.,toi,you,personal pronoun
@@ -164,9 +164,9 @@
 164.,beau,beautiful; lovely; pretty; fine; nice (weather),adjective
 165.,essayer,to try; try out; test,verb
 166.,quel,what; which (interrogative),interrogative adjective
-167.,vos,your (plural; from ''votre''),possessive adjective
+167.,vos,your (plural; from votre),possessive adjective
 168.,depuis,since; from; for;  french.languagedaily.com,preposition; adverb
-169.,quelqu'un,someone; somebody,indefinite pronoun
+169.,quelqu un,someone; somebody,indefinite pronoun
 170.,beaucoup,much; many; a lot,adverb
 171.,revenir,to come back; return,verb
 172.,donc,so; therefore,conjunction
@@ -259,7 +259,7 @@
 259.,ok,OK; okay (satisfactory),adjective; adverb
 260.,marcher,to walk; march; go,verb
 261.,chance,luck; fortune; chance,noun
-262.,aujourd'hui,today; nowadays,adverb
+262.,aujourd hui,today; nowadays,adverb
 263.,envoyer,to send; throw; dispatch; refer,verb
 264.,histoire,history; story,noun
 265.,jeune,young; youthful; young person,adjective; noun
@@ -327,7 +327,7 @@
 327.,fort,strong; solid; loud; much; most,adverb; adjective
 328.,gros,big; large; thick; heavy,adjective
 329.,enfin,finally; at last,adverb
-330.,pardon,I'm sorry!; Excuse me!; Pardon?; forgiveness,onomatopoeia; noun
+330.,pardon,I m sorry!; Excuse me!; Pardon?; forgiveness,onomatopoeia; noun
 331.,mari,husband,noun
 332.,là-bas,there; over there,adverb
 333.,importer,to import; to matter,verb
@@ -388,7 +388,7 @@
 388.,fin,end; ending,noun
 389.,tiens,Why!; Hello! (surprise),onomatopoeia
 390.,inquiéter,to worry; bother; trouble,verb
-391.,d'autres,others; more,indefinite adjective; indefinite pronoun
+391.,d autres,others; more,indefinite adjective; indefinite pronoun
 392.,bouger,to move,verb
 393.,plutôt,rather; quite,adverb
 394.,apporter,to bring; supply,verb
@@ -451,7 +451,7 @@
 451.,verre,glass; drink,noun
 452.,réveiller,to awake; wake (smb.) up,verb
 453.,aide,assistant; help; assistance,noun
-454.,d'abord,foremost (most important); first,adverb
+454.,d abord,foremost (most important); first,adverb
 455.,journée,day,noun
 456.,préparer,to prepare; make; get ready,verb
 457.,numéro,number,noun
@@ -582,7 +582,7 @@
 582.,habiter,to live in,verb
 583.,faim,hunger,noun
 584.,ensuite,then; next; afterwards,adverb
-585.,l'un,a; an; one (replaces 'un' when 'un' is a pronoun or at the beginning of a sentence) (see #14),indefinite pronoun
+585.,l un,a; an; one (replaces un when un is a pronoun or at the beginning of a sentence) (see #14),indefinite pronoun
 586.,froid,cold,adjective
 587.,normal,normal; usual,adjective
 588.,déranger,to disturb; upset,verb

@@ -18,6 +18,10 @@
         android:textColor="#33b5e5"
         android:textSize="50sp"
         android:textStyle="bold" />
+    <ListView
+        android:id="@+id/MyListView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"></ListView>
 
     <!-- This FrameLayout insets its children based on system windows using
          android:fitsSystemWindows. -->

@@ -1,20 +1,30 @@
 package com.profimedica.wordlex;
 
 import android.annotation.SuppressLint;
+import android.app.Dialog;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
+import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.media.MediaPlayer;
+import android.net.Uri;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.MotionEvent;
+import android.view.SoundEffectConstants;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.opencsv.CSVReader;
 
 import java.io.File;
@@ -33,6 +43,7 @@ import java.util.Random;
  */
 public class QuizActivity extends AppCompatActivity {
 
+    MediaPlayer m = new MediaPlayer();
     // Native to foreign or foreign to native
     boolean reverseLanguages = false;
 
@@ -81,67 +92,75 @@ public class QuizActivity extends AppCompatActivity {
     int wrongHits = 0;
     TextView LastTranslation = null;
 
-    protected View.OnClickListener buttonListener0 = new View.OnClickListener(){
+    protected View.OnClickListener buttonListener0 = new View.OnClickListener() {
         @Override
-        public void onClick(View v){
+        public void onClick(View v) {
             FillStatistics(goodButtonNumber == 0);
         }
     };
 
-    protected View.OnClickListener buttonListener1 = new View.OnClickListener(){
+    protected View.OnClickListener buttonListener1 = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             FillStatistics(goodButtonNumber == 1);
         }
     };
-    protected View.OnClickListener buttonListener2 = new View.OnClickListener(){
+    protected View.OnClickListener buttonListener2 = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             FillStatistics(goodButtonNumber == 2);
         }
     };
-    protected View.OnClickListener buttonListener3 = new View.OnClickListener(){
+    protected View.OnClickListener buttonListener3 = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             FillStatistics(goodButtonNumber == 3);
         }
     };
-    protected View.OnClickListener buttonListener4 = new View.OnClickListener(){
+    protected View.OnClickListener buttonListener4 = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             FillStatistics(goodButtonNumber == 4);
         }
     };
-    protected View.OnClickListener difficultyButtonListener = new View.OnClickListener(){
+    protected View.OnClickListener difficultyButtonListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             //FillStatistics(goodButtonNumber == 4);
         }
     };
-    protected View.OnClickListener difficulty0ButtonListener = new View.OnClickListener(){
+    protected View.OnClickListener difficulty0ButtonListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
+            WriteSQL(null, "Saved");
             FilterRecords(0);
         }
     };
-    protected View.OnClickListener difficulty1ButtonListener = new View.OnClickListener(){
+    protected View.OnClickListener difficulty1ButtonListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
+            WriteSQL(null, "Saved");
             FilterRecords(1);
         }
     };
-    protected View.OnClickListener difficulty3ButtonListener = new View.OnClickListener(){
+    protected View.OnClickListener difficulty3ButtonListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
+            WriteSQL(null, "Saved");
             FilterRecords(3);
         }
     };
-    protected View.OnClickListener difficulty5ButtonListener = new View.OnClickListener(){
+    protected View.OnClickListener difficulty5ButtonListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
+            WriteSQL(null, "Saved");
             FilterRecords(5);
         }
     };
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
 
     private void FilterRecords(int i) {
         ReadSQL(this, "", i);
@@ -149,20 +168,17 @@ public class QuizActivity extends AppCompatActivity {
         currentWord = CreateQuiz(wordsToBeDiscovered);
         leftWordsNumber = initialWordsCount;
         LeftWordsLabel.setText(String.valueOf(leftWordsNumber));
-        totalHits=0;
+        totalHits = 0;
     }
 
-    protected View.OnClickListener buttonListenerSwitchLanguages = new View.OnClickListener(){
+    protected View.OnClickListener buttonListenerSwitchLanguages = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             totalHits--;
             reverseLanguages = !reverseLanguages;
-            if(reverseLanguages)
-            {
+            if (reverseLanguages) {
                 //SwitchLanguagesButton.setText("En -> Fr");
-            }
-            else
-            {
+            } else {
                 //SwitchLanguagesButton.setText("Fr -> En");
             }
             FillStatistics(false);
@@ -172,17 +188,17 @@ public class QuizActivity extends AppCompatActivity {
     private void FillStatistics(boolean guessed) {
         totalHits++;
         currentWord.Unsaved = true;
-        if(guessed)
-        {
+        if (guessed) {
             leftWordsNumber--;
             wordsToBeDiscovered.remove(currentWord);
             wordsAlreadyDiscovered.add(currentWord);
             currentWord.Good++;
+            playBeep(SoundEffectConstants.CLICK);
             //LastTranslation.setTextColor(Color.GREEN);
-        }
-        else {
+        } else {
             wrongHits++;
             currentWord.Bad++;
+            playBeep(SoundEffectConstants.NAVIGATION_RIGHT);
             //LastTranslation.setTextColor(Color.MAGENTA);
         }
         //GuesedWordsNumber.setText(String.valueOf(initialWordsCount-words.size()));
@@ -194,30 +210,46 @@ public class QuizActivity extends AppCompatActivity {
         //LastTranslation.invalidate();
     }
 
+    public void playBeep(int Sound) {
+        try {
+            if (m.isPlaying()) {
+                m.stop();
+                m.release();
+                m = new MediaPlayer();
+            }
+
+            AssetFileDescriptor descriptor = getAssets().openFd("good.m4a");
+            m.setDataSource(descriptor.getFileDescriptor(), descriptor.getStartOffset(), descriptor.getLength());
+            descriptor.close();
+
+            m.prepare();
+            m.setVolume(1f, 1f);
+            m.setLooping(true);
+            m.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public Word CreateQuiz(List<Word> words) {
         currentWordIndex = rnd.nextInt(words.size() - 1);
         currentWord = words.get(currentWordIndex);
         goodButtonNumber = rnd.nextInt(5);
         GoodLabel.setText(String.valueOf(currentWord.Good));
         BadLabel.setText(String.valueOf(currentWord.Bad));
-        if(reverseLanguages)
-        {
+        if (reverseLanguages) {
             buttons[goodButtonNumber].setText(currentWord.Native);
             TextToTranslate.setText(currentWord.Foreign);
-        }
-        else {
+        } else {
             buttons[goodButtonNumber].setText(currentWord.Foreign);
             TextToTranslate.setText(currentWord.Native);
         }
 
-        for(int i = 0; i<buttons.length; i++)
-        {
-            if(i != goodButtonNumber)
-            {
-                if(reverseLanguages) {
+        for (int i = 0; i < buttons.length; i++) {
+            if (i != goodButtonNumber) {
+                if (reverseLanguages) {
                     buttons[i].setText(words.get(rnd.nextInt(words.size() - 1)).Native);
-                }
-                else {
+                } else {
                     buttons[i].setText(words.get(rnd.nextInt(words.size() - 1)).Foreign);
                 }
             }
@@ -252,19 +284,18 @@ public class QuizActivity extends AppCompatActivity {
         */
     }
 
-    private void WriteWordInDatabase(SQLiteDatabase db, Word word)
-    {
+    private void WriteWordInDatabase(SQLiteDatabase db, Word word) {
         // Create a new map of values, where column names are the keys
-        if(word.Id == null) {
+        if (word.Id == null) {
             String SQL = "INSERT INTO " + WordReaderContract.WordEntry.TABLE_NAME +
-            " (" +
-            WordReaderContract.WordEntry.COLUMN_NAME_NATIVE + " , " +
-            WordReaderContract.WordEntry.COLUMN_NAME_FOREIGN + " , " +
-            WordReaderContract.WordEntry.COLUMN_NAME_GOOD + " , " +
-            WordReaderContract.WordEntry.COLUMN_NAME_BAD + " , " +
-            WordReaderContract.WordEntry.COLUMN_NAME_SPENT + " , " +
-            WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY +
-            " ) VALUES ( '" +
+                    " (" +
+                    WordReaderContract.WordEntry.COLUMN_NAME_NATIVE + " , " +
+                    WordReaderContract.WordEntry.COLUMN_NAME_FOREIGN + " , " +
+                    WordReaderContract.WordEntry.COLUMN_NAME_GOOD + " , " +
+                    WordReaderContract.WordEntry.COLUMN_NAME_BAD + " , " +
+                    WordReaderContract.WordEntry.COLUMN_NAME_SPENT + " , " +
+                    WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY +
+                    " ) VALUES ( '" +
                     word.Native + "' , '" +
                     word.Foreign + "' , " +
                     word.Good + " , " +
@@ -274,16 +305,15 @@ public class QuizActivity extends AppCompatActivity {
                     "' ) ";
             db.execSQL(SQL);
             word.Id = getLastInsertId(db, WordReaderContract.WordEntry.TABLE_NAME);
-        }
-        else {
-            String SQL = "UPDATE TABLE " + WordReaderContract.WordEntry.TABLE_NAME +
+        } else {
+            String SQL = "UPDATE " + WordReaderContract.WordEntry.TABLE_NAME +
                     " SET " +
-            WordReaderContract.WordEntry.COLUMN_NAME_NATIVE + " = " + word.Native + " , " +
-            WordReaderContract.WordEntry.COLUMN_NAME_FOREIGN + " = " + word.Foreign + " , " +
-            WordReaderContract.WordEntry.COLUMN_NAME_GOOD + " = " + word.Good + " , " +
-            WordReaderContract.WordEntry.COLUMN_NAME_BAD + " = " + word.Bad + " , " +
-            WordReaderContract.WordEntry.COLUMN_NAME_SPENT + " = " + word.TimeSpend + " , " +
-            WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY + " = " + word.Dictionary + " WHERE " +
+                    WordReaderContract.WordEntry.COLUMN_NAME_NATIVE + " = '" + word.Native + "' , " +
+                    WordReaderContract.WordEntry.COLUMN_NAME_FOREIGN + " = '" + word.Foreign + "' , " +
+                    WordReaderContract.WordEntry.COLUMN_NAME_GOOD + " = " + word.Good + " , " +
+                    WordReaderContract.WordEntry.COLUMN_NAME_BAD + " = " + word.Bad + " , " +
+                    WordReaderContract.WordEntry.COLUMN_NAME_SPENT + " = " + word.TimeSpend + " , " +
+                    WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY + " = '" + word.Dictionary + "' WHERE " +
                     WordReaderContract.WordEntry.COLUMN_NAME_ENTRY_ID + " = " + word.Id;
             db.execSQL(SQL);
         }
@@ -294,29 +324,54 @@ public class QuizActivity extends AppCompatActivity {
         // Gets the data repository in write mode
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
 
-        for(Iterator<Word> i = wordsToBeDiscovered.iterator(); i.hasNext(); ) {
+        for (Iterator<Word> i = wordsToBeDiscovered.iterator(); i.hasNext(); ) {
             Word word = i.next();
-            if(word.Unsaved) {
+            if (word.Unsaved) {
                 WriteWordInDatabase(db, word);
             }
         }
-        for(Iterator<Word> i = wordsAlreadyDiscovered.iterator(); i.hasNext(); ) {
+        for (Iterator<Word> i = wordsAlreadyDiscovered.iterator(); i.hasNext(); ) {
             Word word = i.next();
             WriteWordInDatabase(db, word);
         }
         return true;
     }
 
-
     public List<Word> EmptyTable(Context context, String tableName) {
         WordReaderDbHelper mDbHelper = new WordReaderDbHelper(this);
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
-        String SQL = "DELETE FROM "+ WordReaderContract.WordEntry.TABLE_NAME;
+        String SQL = "DELETE FROM " + WordReaderContract.WordEntry.TABLE_NAME;
         db.execSQL(SQL);
         return null;
     }
 
-    public List<Word> ReadSQL(Context context, String tableName, int difficulty){
+    @Override
+    public void onResume() {
+        super.onResume();
+        int statusCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(QuizActivity.this);
+        if( statusCode != ConnectionResult.SUCCESS)
+        {
+            Log.e("statuscode", statusCode + "");
+            if(GooglePlayServicesUtil.isUserRecoverableError(statusCode))
+            {
+                Dialog errorDialog = GooglePlayServicesUtil.getErrorDialog(
+                        statusCode,
+                        QuizActivity.this,
+                        0);
+
+                // If Google Play services can provide an error dialog
+                if (errorDialog != null) {
+                    errorDialog.show();
+                }
+            }
+            else
+            {
+                Toast.makeText(this, "test", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    public List<Word> ReadSQL(Context context, String tableName, int difficulty) {
         wordsAlreadyDiscovered.clear();
         wordsToBeDiscovered.clear();
         WordReaderDbHelper mDbHelper = new WordReaderDbHelper(this);
@@ -330,7 +385,7 @@ public class QuizActivity extends AppCompatActivity {
                 WordReaderContract.WordEntry.COLUMN_NAME_SPENT + " , " +
                 WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY +
                 " FROM " + WordReaderContract.WordEntry.TABLE_NAME +
-                " WHERE " +  WordReaderContract.WordEntry.COLUMN_NAME_BAD +
+                " WHERE " + WordReaderContract.WordEntry.COLUMN_NAME_BAD +
                 " >= " + difficulty + " ORDER BY " +
                 WordReaderContract.WordEntry.COLUMN_NAME_BAD + " DESC";
         Cursor cursor = db.rawQuery(SQL, null);
@@ -355,7 +410,7 @@ public class QuizActivity extends AppCompatActivity {
         //);
         ArrayList<String> array_list = new ArrayList<String>();
 
-        while(cursor.isAfterLast() == false){
+        while (cursor.isAfterLast() == false) {
             Word word = new Word(
                     /*cursor.getLong(cursor.getColumnIndex(WordReaderContract.WordEntry.COLUMN_NAME_ENTRY_ID)),
                     cursor.getString(cursor.getColumnIndex(WordReaderContract.WordEntry.COLUMN_NAME_NATIVE)),
@@ -383,7 +438,7 @@ public class QuizActivity extends AppCompatActivity {
         AssetManager assetManager = context.getAssets();
 
         try {
-            InputStream csvStream = assetManager.open(fileName+ ".csv");
+            InputStream csvStream = assetManager.open(fileName + ".csv");
             InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
             CSVReader csvReader = new CSVReader(csvStreamReader);
             String[] line;
@@ -501,11 +556,11 @@ public class QuizActivity extends AppCompatActivity {
         });
 
 
-        SortByDifficultyButton = (TextView)findViewById(R.id.sort_by_difficulty_button);
-        Difficulty0Button = (TextView)findViewById(R.id.difficulty_0_button);
-        Difficulty1Button = (TextView)findViewById(R.id.difficulty_1_button);
-        Difficulty3Button = (TextView)findViewById(R.id.difficulty_3_button);
-        Difficulty5Button = (TextView)findViewById(R.id.difficulty_5_button);
+        //SortByDifficultyButton = (TextView) findViewById(R.id.sort_by_difficulty_button);
+        Difficulty0Button = (TextView) findViewById(R.id.difficulty_0_button);
+        Difficulty1Button = (TextView) findViewById(R.id.difficulty_1_button);
+        Difficulty3Button = (TextView) findViewById(R.id.difficulty_3_button);
+        Difficulty5Button = (TextView) findViewById(R.id.difficulty_5_button);
         Difficulty0Button.setOnClickListener(difficulty0ButtonListener);
         Difficulty1Button.setOnClickListener(difficulty1ButtonListener);
         Difficulty3Button.setOnClickListener(difficulty3ButtonListener);
@@ -513,21 +568,21 @@ public class QuizActivity extends AppCompatActivity {
         //View rootView = inflater.inflate(R.layout.fragment_quiz, container, false);
         //TextView textView = (TextView) rootView.findViewById(R.id.section_label);
         //textView.setText(getString(R.string.section_format, getArguments().getInt(ARG_SECTION_NUMBER)));
-        BadLabel = (TextView)findViewById(R.id.GoodLabel);
-        GoodLabel = (TextView)findViewById(R.id.BadLabel);
-        TextToTranslate = (TextView)findViewById(R.id.fullscreen_content);
+        BadLabel = (TextView) findViewById(R.id.GoodLabel);
+        GoodLabel = (TextView) findViewById(R.id.BadLabel);
+        TextToTranslate = (TextView) findViewById(R.id.fullscreen_content);
         //TotalWordsNumber = (TextView)findViewById(R.id.TotalWordsNumber);
         //GuesedWordsNumber = (TextView)findViewById(R.id.GuesedWordsNumber);
-        WrongWordsNumber = (TextView)findViewById(R.id.WrongWordsNumber);
-        LeftWordsLabel = (TextView)findViewById(R.id.LeftWordsLabel);
+        WrongWordsNumber = (TextView) findViewById(R.id.WrongWordsNumber);
+        LeftWordsLabel = (TextView) findViewById(R.id.LeftWordsLabel);
         //LastTranslation = (TextView)findViewById(R.id.LastTranslation);
         //SwitchLanguagesButton = (TextView)findViewById(R.id.switchLanguages);
 
-        buttons[0] = (Button)findViewById(R.id.button0);
-        buttons[1] = (Button)findViewById(R.id.button1);
-        buttons[2] = (Button)findViewById(R.id.button2);
-        buttons[3] = (Button)findViewById(R.id.button3);
-        buttons[4] = (Button)findViewById(R.id.button4);
+        buttons[0] = (Button) findViewById(R.id.button0);
+        buttons[1] = (Button) findViewById(R.id.button1);
+        buttons[2] = (Button) findViewById(R.id.button2);
+        buttons[3] = (Button) findViewById(R.id.button3);
+        buttons[4] = (Button) findViewById(R.id.button4);
         buttons[0].setOnClickListener(buttonListener0);
         buttons[1].setOnClickListener(buttonListener1);
         buttons[2].setOnClickListener(buttonListener2);
@@ -545,6 +600,9 @@ public class QuizActivity extends AppCompatActivity {
         // Upon interacting with UI controls, delay any scheduled hide()
         // operations to prevent the jarring behavior of controls going away
         // while interacting with the UI.
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        // client = new com.google.android.gms.common.api.GoogleApiClient.Builder(this).addApi(com.google.android.gms.appindexing.AppIndex.API).build();
     }
 
     @Override
@@ -598,5 +656,22 @@ public class QuizActivity extends AppCompatActivity {
     private void delayedHide(int delayMillis) {
         mHideHandler.removeCallbacks(mHideRunnable);
         mHideHandler.postDelayed(mHideRunnable, delayMillis);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+    }
+
+    public void LunchStatisticsActivity(View view)
+    {
+        Intent intent = new Intent(this, ItemListActivity.class);
+        startActivity(intent);
     }
 }

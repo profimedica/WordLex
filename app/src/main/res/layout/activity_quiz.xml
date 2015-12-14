@@ -243,12 +243,6 @@
             android:orientation="horizontal"
             tools:ignore="UselessParent">
             <Button
-                android:id="@+id/sort_by_difficulty_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Difficulty" />
-            <Button
                 android:id="@+id/difficulty_0_button"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -272,6 +266,13 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="5" />
+            <Button
+                android:id="@+id/statisticsButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="LunchStatisticsActivity"
+                android:layout_weight="1"
+                android:text=">>" />
         </LinearLayout>
     </FrameLayout>
 </FrameLayout>
