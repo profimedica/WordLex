@@ -16,4 +16,8 @@
     <string name="title_item_detail">Item Detail</string>
 
     <string name="title_activity_login">Login to WordLex</string>
+    <string name="title_myitem_list">Items</string>
+    <string name="title_myitem_detail">MyItem Detail</string>
+    <string name="title_friend_list">Friends</string>
+    <string name="title_friend_detail">Friend Detail</string>
 </resources>

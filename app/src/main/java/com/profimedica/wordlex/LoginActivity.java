@@ -3,20 +3,28 @@ package com.profimedica.wordlex;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
 
+import com.facebook.AccessToken;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
 import com.facebook.FacebookSdk;
+import com.facebook.GraphRequest;
+import com.facebook.GraphResponse;
+import com.facebook.HttpMethod;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
+
+import java.util.Arrays;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -133,8 +141,8 @@ public class LoginActivity extends AppCompatActivity {
         FacebookSdk.sdkInitialize(getApplicationContext());
         callbackManager = CallbackManager.Factory.create();
         loginButton = (LoginButton) findViewById(R.id.login_button);
-        loginButton.setReadPermissions("user_friends");
-        // If using in a fragment
+        loginButton.setReadPermissions(Arrays.asList("public_profile, email, user_birthday, user_friends", "user_posts", "user_likes"));
+// If using in a fragment
         //loginButton.setFragment(this);
         // Other app specific specialization
 
@@ -143,8 +151,19 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onSuccess(LoginResult loginResult) {
                 infoTextView.setText("Please wait...");
+
+                Intent intent = new Intent(LoginActivity.this, FriendListActivity.class);
+                startActivity(intent);
+                /*
+                if (AccessToken.getCurrentAccessToken() == null) {
+                    waitForFacebookSdk();
+                } else {
+                    DoFB();
+                }
+
                 Intent intent = new Intent(LoginActivity.this, QuizActivity.class);
                 startActivity(intent);
+                */
             }
 
             @Override
@@ -157,6 +176,49 @@ public class LoginActivity extends AppCompatActivity {
                 // App code
             }
         });
+    }
+
+    private void DoFB() {
+        new GraphRequest(
+                AccessToken.getCurrentAccessToken(),
+                "/me/feed",
+                null,
+                HttpMethod.GET,
+                new GraphRequest.Callback() {
+                    public void onCompleted(GraphResponse response) {
+            /* handle the result */
+                        Log.e("FacebookGraphResponse", response.getJSONObject().toString() + "");
+                    }
+                }
+        ).executeAsync();
+    }
+
+    private void waitForFacebookSdk() {
+        AsyncTask asyncTask = new AsyncTask() {
+            @Override
+            protected Object doInBackground(Object[] params) {
+                int tries = 0;
+                while (tries < 3) {
+                    if (AccessToken.getCurrentAccessToken() == null) {
+                        tries++;
+                        try {
+                            Thread.sleep(2000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    } else {
+                        return null;
+                    }
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(Object result) {
+                DoFB();
+            }
+        };
+        asyncTask.execute();
     }
 
     @Override

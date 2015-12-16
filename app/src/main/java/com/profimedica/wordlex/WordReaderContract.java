@@ -18,6 +18,8 @@ public final class WordReaderContract {
         public static final String COLUMN_NAME_FOREIGN = "`foreign`";
         public static final String COLUMN_NAME_GOOD = "`good`";
         public static final String COLUMN_NAME_BAD = "`bad`";
+        public static final String COLUMN_NAME_FGOOD = "`fgood`";
+        public static final String COLUMN_NAME_FBAD = "`fbad`";
         public static final String COLUMN_NAME_SPENT = "`spent`";
         public static final String COLUMN_NAME_DICTIONARY = "`dictionary`";
     }

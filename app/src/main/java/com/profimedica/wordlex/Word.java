@@ -11,13 +11,21 @@ public class Word implements Comparable<Word> {
     public int compareTo(Word o2) {
         return this.Bad - o2.Bad;
     }
-    public Word(Long Id, String Native, String Foreign, Integer Bad, Integer Good, Long TimeSpend, String Dictionary){
+    public int compareToForeign(Word o2) {
+
+        return this.FBad - o2.FBad;
+    }
+
+
+    public Word(Long Id, String Native, String Foreign, Integer Bad, Integer Good, Integer FBad, Integer FGood, Long TimeSpend, String Dictionary){
         this.Id = Id;
         this.Native = Native;
         this.Foreign = Foreign;
         try {
             this.Bad = Integer.valueOf(Bad);
             this.Good = Integer.valueOf(Good);
+            this.FBad = Integer.valueOf(FBad);
+            this.FGood = Integer.valueOf(FGood);
             this.TimeSpend = Long.valueOf(TimeSpend);
         }catch(Exception e){}
         this.Dictionary = Dictionary;
@@ -28,6 +36,8 @@ public class Word implements Comparable<Word> {
     public String Foreign;
     public int Bad;
     public int Good;
+    public int FBad;
+    public int FGood;
     public long TimeSpend;
     public String Dictionary;
     public Boolean Unsaved;

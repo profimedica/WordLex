@@ -77,6 +77,8 @@ public class ItemListActivity extends AppCompatActivity {
                 WordReaderContract.WordEntry.COLUMN_NAME_FOREIGN + " , " +
                 WordReaderContract.WordEntry.COLUMN_NAME_GOOD + " , " +
                 WordReaderContract.WordEntry.COLUMN_NAME_BAD + " , " +
+                WordReaderContract.WordEntry.COLUMN_NAME_FGOOD + " , " +
+                WordReaderContract.WordEntry.COLUMN_NAME_FBAD + " , " +
                 WordReaderContract.WordEntry.COLUMN_NAME_SPENT + " , " +
                 WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY +
                 " FROM " + WordReaderContract.WordEntry.TABLE_NAME +
@@ -93,8 +95,10 @@ public class ItemListActivity extends AppCompatActivity {
                     cursor.getString(2),
                     cursor.getInt(3),
                     cursor.getInt(4),
-                    cursor.getLong(5),
-                    cursor.getString(6)
+                    cursor.getInt(5),
+                    cursor.getInt(6),
+                    cursor.getLong(7),
+                    cursor.getString(8)
             );
             wordsToBeDiscovered.add(word);
             cursor.moveToNext();

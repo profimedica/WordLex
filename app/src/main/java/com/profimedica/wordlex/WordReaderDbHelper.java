@@ -16,9 +16,11 @@ import android.database.sqlite.SQLiteOpenHelper;
         WordReaderContract.WordEntry.COLUMN_NAME_ENTRY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT ," +
         WordReaderContract.WordEntry.COLUMN_NAME_NATIVE + TEXT_TYPE + COMMA_SEP +
         WordReaderContract.WordEntry.COLUMN_NAME_FOREIGN + TEXT_TYPE + COMMA_SEP +
-        WordReaderContract.WordEntry.COLUMN_NAME_GOOD + INT_TYPE + COMMA_SEP +
-        WordReaderContract.WordEntry.COLUMN_NAME_BAD + INT_TYPE + COMMA_SEP +
-        WordReaderContract.WordEntry.COLUMN_NAME_SPENT + INT_TYPE + COMMA_SEP +
+                WordReaderContract.WordEntry.COLUMN_NAME_GOOD + INT_TYPE + COMMA_SEP +
+                WordReaderContract.WordEntry.COLUMN_NAME_BAD + INT_TYPE + COMMA_SEP +
+                WordReaderContract.WordEntry.COLUMN_NAME_FGOOD + INT_TYPE + COMMA_SEP +
+                WordReaderContract.WordEntry.COLUMN_NAME_FBAD + INT_TYPE + COMMA_SEP +
+                WordReaderContract.WordEntry.COLUMN_NAME_SPENT + INT_TYPE + COMMA_SEP +
         WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY + TEXT_TYPE +
         " )";
 

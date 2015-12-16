@@ -4,12 +4,6 @@
     android:layout_height="match_parent"
     android:background="#0099cc"
     tools:context="com.profimedica.wordlex.QuizActivity">
-    <!-- The primary full-screen view. This can be replaced with whatever view
-         is needed to present your content, e.g. VideoView, SurfaceView,
-         TextureView, etc. -->
-
-    <!-- This FrameLayout insets its children based on system windows using
-         android:fitsSystemWindows. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -101,24 +95,6 @@
             android:text=" left)"
             android:textAppearance="?android:attr/textAppearanceLarge" /-->
     </LinearLayout>
-    <!--TextView
-        android:padding="10px"
-        android:id="@+id/switchLanguages"
-        android:gravity="right"
-        android:color="#00f"
-        android:background="#eee"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="FR -> EN"
-        android:textAppearance="?android:attr/textAppearanceLarge" />
-    <TextView
-        android:id="@+id/ss"
-        android:gravity="center"
-        android:textSize="40dp"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text=""
-        android:textAppearance="?android:attr/textAppearanceLarge" /-->
     <TextView
         android:id="@+id/fullscreen_content"
         android:paddingTop="90dp"
@@ -128,7 +104,18 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textStyle="bold"
-        android:text="Word"
+        android:text="Loading..."
+        android:textAppearance="?android:attr/textAppearanceLarge" />
+    <TextView
+        android:id="@+id/switchLanguagesButton"
+        android:paddingTop="30dp"
+        android:gravity="center"
+        android:keepScreenOn="true"
+        android:textColor="#888"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textStyle="bold"
+        android:text="En -> De"
         android:textAppearance="?android:attr/textAppearanceLarge" />
     <LinearLayout
         android:layout_width="match_parent"
@@ -183,7 +170,7 @@
             android:layout_height="wrap_content"
             android:checked="true"
             android:textSize="26dp"
-            android:text="RadioButton" />
+            android:text="Loading..." />
         <Button
             android:id="@+id/button1"
             android:padding="13dp"
@@ -194,7 +181,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="26dp"
-            android:text="RadioButton" />
+            android:text="Loading..." />
         <Button
             android:id="@+id/button2"
             android:padding="13dp"
@@ -205,7 +192,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="26dp"
-            android:text="RadioButton" />
+            android:text="Loading..." />
         <Button
             android:id="@+id/button3"
             android:padding="13dp"
@@ -216,7 +203,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="26dp"
-            android:text="RadioButton" />
+            android:text="Loading..." />
         <Button
             android:id="@+id/button4"
             android:padding="13dp"
@@ -227,7 +214,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="26dp"
-            android:text="RadioButton" />
+            android:text="Loading..." />
     </RadioGroup>
     <FrameLayout
         android:layout_width="match_parent"

@@ -26,7 +26,7 @@ public class ItemDetailFragment extends Fragment {
     /**
      * The dummy content this fragment is presenting.
      */
-    private Word mItem = new Word(Long.valueOf(-1), "ERR", "no map", 0, 0, Long.valueOf(0), "" );
+    private Word mItem = new Word(Long.valueOf(-1), "ERR", "no map", 0, 0, 0, 0, Long.valueOf(0), "" );
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
