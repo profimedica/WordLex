@@ -9,10 +9,13 @@ import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.CountDownTimer;
 import android.os.StrictMode;
+import android.speech.tts.UtteranceProgressListener;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -23,35 +26,24 @@ import android.view.MotionEvent;
 import android.view.SoundEffectConstants;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.opencsv.CSVReader;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
 import android.speech.tts.TextToSpeech;
-
-import org.xml.sax.XMLReader;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
 
 
 /**
@@ -60,12 +52,20 @@ import javax.xml.parsers.SAXParserFactory;
  */
 public class QuizActivity extends AppCompatActivity {
 
-    TextToSpeech t1;
+    int difficulty = 0;
+    TextView Timer;
+    ImageView Settings;
+    CountDownTimer countDownTimer;
+    long millis = 0;
+    boolean displayCumulatedConsumeForCurentWord;
+    TextToSpeech TTSnative;
+    TextToSpeech TTSforeign;
+    boolean speacking = false;
     // Media player for reading words
     MediaPlayer m = new MediaPlayer();
 
     // Native to foreign or foreign to native
-    static boolean nativeFirst;
+    static boolean nativeFirst = true;
 
     // Total hits for a language direction
     int totalHits = 0;
@@ -99,13 +99,14 @@ public class QuizActivity extends AppCompatActivity {
     TextView SwitchLanguagesButton = null;
 
     TextView SortByDifficultyButton;
-    TextView Difficulty0Button;
-    TextView Difficulty1Button;
-    TextView Difficulty3Button;
-    TextView Difficulty5Button;
+    TextView HigherDifficulty;
+    TextView LowerDifficulty;
+    TextView LevelIndicator;
 
     TextView GoodLabel = null;
     TextView BadLabel = null;
+    TextView AnteForeign = null;
+    TextView AnteNative = null;
     TextView WrongWordsNumber = null;
     TextView LeftWordsLabel = null;
     int leftWordsNumber = 0;
@@ -143,38 +144,40 @@ public class QuizActivity extends AppCompatActivity {
             FillStatistics(goodButtonNumber == 4);
         }
     };
-    protected View.OnClickListener difficultyButtonListener = new View.OnClickListener() {
+    protected View.OnClickListener settingsButtonListner = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            //FillStatistics(goodButtonNumber == 4);
+            // Go to settings screen
+            Intent intent = new Intent(getApplicationContext(), AboutActivity.class);
+            startActivity(intent);
         }
     };
-    protected View.OnClickListener difficulty0ButtonListener = new View.OnClickListener() {
+    protected View.OnClickListener timerButtonListner = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            displayCumulatedConsumeForCurentWord = !displayCumulatedConsumeForCurentWord;
+            Timer.setTextColor(displayCumulatedConsumeForCurentWord ? Color.BLACK : Color.GRAY);
+        }
+    };
+    protected View.OnClickListener HigherDifficultyListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
             WriteSQL(null, "Saved");
-            FilterRecords(0);
+            difficulty++;
+
+            FilterRecords(difficulty);
         }
     };
-    protected View.OnClickListener difficulty1ButtonListener = new View.OnClickListener() {
+    protected View.OnClickListener LowerDifficultyListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
+            if(difficulty == 0)
+            {
+                return;
+            }
             WriteSQL(null, "Saved");
-            FilterRecords(1);
-        }
-    };
-    protected View.OnClickListener difficulty3ButtonListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            WriteSQL(null, "Saved");
-            FilterRecords(3);
-        }
-    };
-    protected View.OnClickListener difficulty5ButtonListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            WriteSQL(null, "Saved");
-            FilterRecords(5);
+            difficulty--;
+            FilterRecords(difficulty);
         }
     };
 
@@ -185,7 +188,17 @@ public class QuizActivity extends AppCompatActivity {
 
     private void FilterRecords(int i) {
         ReadSQL(this, "", i);
+        if(wordsToBeDiscovered.size() < 5)
+        {
+            difficulty--;
+            FilterRecords(difficulty);
+        }
+        else
+        {
+            LevelIndicator.setText(" " + String.valueOf(difficulty) + " ");
+        }
         initialWordsCount = wordsToBeDiscovered.size(); //TODO count unanswared
+        WrongWordsNumber.setText(String.valueOf(0));
         currentWord = CreateQuiz(wordsToBeDiscovered);
         leftWordsNumber = initialWordsCount;
         LeftWordsLabel.setText(String.valueOf(leftWordsNumber));
@@ -196,19 +209,47 @@ public class QuizActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             totalHits--;
+            leftWordsNumber++;
             nativeFirst = !nativeFirst;
             if (nativeFirst) {
                 SwitchLanguagesButton.setText("De -> En");
             } else {
                 SwitchLanguagesButton.setText("En -> De");
             }
-            FillStatistics(false);
+            WriteSQL(QuizActivity.this, "Saved");
+            FilterRecords(difficulty);//handleError(data);
+            currentWord = CreateQuiz(wordsToBeDiscovered);
         }
     };
 
     private void FillStatistics(boolean guessed) {
+        if (!guessed) {
+            speacking = true;
+            if (nativeFirst) {
+                //TTSforeign.speak(currentWord.Foreign, TextToSpeech.QUEUE_FLUSH, null);
+                AnteNative.setText(currentWord.Native);
+                AnteForeign.setText(currentWord.Foreign);
+            } else {
+                //TTSnative.speak(currentWord.Native, TextToSpeech.QUEUE_FLUSH, null);
+                AnteNative.setText(currentWord.Foreign);
+                AnteForeign.setText(currentWord.Native);
+            }
+        }
+        if(!guessed)
+        {
+            AnteNative.setTextColor(Color.MAGENTA);
+            AnteForeign.setTextColor(Color.MAGENTA);
+        }
+        else
+        {
+            AnteNative.setTextColor(Color.GRAY);
+            AnteForeign.setTextColor(Color.GRAY);
+        }
+
+
         totalHits++;
         currentWord.Unsaved = true;
+        currentWord.TimeSpend += millis;
         if (guessed) {
             leftWordsNumber--;
             wordsToBeDiscovered.remove(currentWord);
@@ -267,10 +308,10 @@ public class QuizActivity extends AppCompatActivity {
         //Toast.makeText(getApplicationContext(), currentWord.Native, Toast.LENGTH_SHORT).show();
         if(nativeFirst)
         {
-            t1.speak(currentWord.Foreign, TextToSpeech.QUEUE_FLUSH, null);
+            TTSnative.speak(currentWord.Native, TextToSpeech.QUEUE_FLUSH, null);
         }
         else {
-            t1.speak(currentWord.Native, TextToSpeech.QUEUE_FLUSH, null);
+            TTSforeign.speak(currentWord.Foreign, TextToSpeech.QUEUE_FLUSH, null);
         }
 
         goodButtonNumber = rnd.nextInt(5);
@@ -298,7 +339,9 @@ public class QuizActivity extends AppCompatActivity {
                 }
             }
         }
-
+        countDownTimer.cancel();
+        millis = 0;
+        countDownTimer.start();
         return words.get(currentWordIndex);
     }
 
@@ -434,13 +477,14 @@ public class QuizActivity extends AppCompatActivity {
                 WordReaderContract.WordEntry.COLUMN_NAME_SPENT + " , " +
                 WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY +
                 " FROM " + WordReaderContract.WordEntry.TABLE_NAME +
-                " WHERE " + WordReaderContract.WordEntry.COLUMN_NAME_BAD +
-                " >= " + difficulty + " ORDER BY ";
+                " WHERE ";
         if (nativeFirst) {
-            SQL += WordReaderContract.WordEntry.COLUMN_NAME_BAD + " DESC";
+            SQL += WordReaderContract.WordEntry.COLUMN_NAME_BAD;
         } else {
-            SQL += WordReaderContract.WordEntry.COLUMN_NAME_FBAD + " DESC";
+            SQL += WordReaderContract.WordEntry.COLUMN_NAME_FBAD;
         }
+            SQL += " >= " + difficulty + " ORDER BY ";
+            SQL += WordReaderContract.WordEntry.COLUMN_NAME_FBAD + " DESC";
         Cursor cursor = db.rawQuery(SQL, null);
     /*
         // How you want the results sorted in the resulting Cursor
@@ -502,8 +546,7 @@ public class QuizActivity extends AppCompatActivity {
                 case DownloadIntentService.ERROR_CODE:
                     ReadCSV(this, "DeEn");
                     WriteSQL(this, "Saved");
-                    ReadSQL(this, "", 0);
-                    FilterRecords(0);//handleError(data);
+                    FilterRecords(difficulty);//handleError(data);
                     break;
                 case DownloadIntentService.RESULT_CODE:
                     //handleRSS(data);
@@ -520,68 +563,12 @@ public class QuizActivity extends AppCompatActivity {
                     }
 
                     WriteSQL(this, "Saved");
-                    ReadSQL(this, "", 0);
-                    FilterRecords(0);
+                    FilterRecords(difficulty);
 
                     break;
             }
         }
         super.onActivityResult(requestCode, resultCode, data);
-    }
-
-    //static String currentLine = "";
-    public List<Word> ReadCSV(Context context, String fileName) {
-        AssetManager assetManager = context.getAssets();
-
-        try {
-            if (fileName == "Online DeEn")
-            {
-                String URL = "http://profimedica.ro/de/de.csv";
-                PendingIntent pendingResult = createPendingResult(RSS_DOWNLOAD_REQUEST_CODE, new Intent(), 0);
-                Intent intent = new Intent(getApplicationContext(), DownloadIntentService.class);
-                intent.putExtra(DownloadIntentService.URL_EXTRA, URL);
-                intent.putExtra(DownloadIntentService.PENDING_RESULT_EXTRA, pendingResult);
-                startService(intent);
-            }
-            if(fileName=="Basic") {
-                InputStream csvStream = assetManager.open(fileName + ".csv");
-                InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
-                CSVReader csvReader = new CSVReader(csvStreamReader);
-                String[] line;
-                // throw away the header
-                csvReader.readNext();
-
-                while ((line = csvReader.readNext()) != null) {
-                    Word word = new Word(null, line[1], line[2], 0, 0, 0, 0, Long.valueOf(0), "FrEn");
-                    word.Unsaved = true;
-                    wordsToBeDiscovered.add(word);
-                }
-            }
-            else
-            {
-                InputStream csvStream = assetManager.open(fileName + ".csv");
-                InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
-                CSVReader csvReader = new CSVReader(csvStreamReader);
-                String[] line;
-
-                // throw away the header
-                csvReader.readNext();
-
-                while ((line = csvReader.readNext()) != null) {
-                    //currentLine = line[0];
-                    //Log.e(">>>>>", currentLine );
-                    line = line[0].split("\\ = ");
-                    Word word = new Word(null, line[0], line[1], 0, 0, 0, 0, Long.valueOf(0), "DeEn");
-                    word.Unsaved = true;
-                    wordsToBeDiscovered.add(word);
-                }
-            }
-        } catch (IOException e) {
-            //Log.e(">>>>>", currentLine );
-            e.printStackTrace();
-        }
-
-        return wordsToBeDiscovered;
     }
 
     protected void onDestroy() {
@@ -626,6 +613,7 @@ public class QuizActivity extends AppCompatActivity {
                     | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
         }
     };
+
     private View mControlsView;
     private final Runnable mShowPart2Runnable = new Runnable() {
         @Override
@@ -662,9 +650,13 @@ public class QuizActivity extends AppCompatActivity {
     };
 
     public void onPause(){
-        if(t1 !=null){
-            t1.stop();
-            t1.shutdown();
+        if(TTSnative !=null){
+            TTSnative.stop();
+            TTSnative.shutdown();
+        }
+        if(TTSforeign !=null){
+            TTSforeign.stop();
+            TTSforeign.shutdown();
         }
         super.onPause();
     }
@@ -678,13 +670,37 @@ public class QuizActivity extends AppCompatActivity {
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
         mContentView = findViewById(R.id.fullscreen_content);
+        AnteNative = (TextView)findViewById(R.id.AnteNative);
+        AnteForeign = (TextView)findViewById(R.id.AnteForeign);
 
-        t1=new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+
+        TTSforeign = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
             public void onInit(int status) {
-                if(status != TextToSpeech.ERROR) {
-                    t1.setLanguage(Locale.GERMANY);
-                }
+                TTSforeign.setLanguage(Locale.ENGLISH);
+                new Thread(new Runnable() {
+                    public void run() {
+                        //if (status != TextToSpeech.ERROR) {
+                        TTSforeign.setLanguage(Locale.ENGLISH);
+                    }
+                });
+            }
+        });
+        try {
+            wait(Long.valueOf(10000));
+        }catch(Exception e){}
+        TTSnative = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                TTSnative.setLanguage(Locale.GERMANY);
+                new Thread(new Runnable() {
+                    public void run() {
+                        //if (status != TextToSpeech.ERROR)
+                        {
+                            TTSnative.setLanguage(Locale.GERMANY);
+                        }
+                    }
+                });
             }
         });
 
@@ -698,27 +714,21 @@ public class QuizActivity extends AppCompatActivity {
 
         hide();
 
-        //SortByDifficultyButton = (TextView) findViewById(R.id.sort_by_difficulty_button);
-        Difficulty0Button = (TextView) findViewById(R.id.difficulty_0_button);
-        Difficulty1Button = (TextView) findViewById(R.id.difficulty_1_button);
-        Difficulty3Button = (TextView) findViewById(R.id.difficulty_3_button);
-        Difficulty5Button = (TextView) findViewById(R.id.difficulty_5_button);
-        Difficulty0Button.setOnClickListener(difficulty0ButtonListener);
-        Difficulty1Button.setOnClickListener(difficulty1ButtonListener);
-        Difficulty3Button.setOnClickListener(difficulty3ButtonListener);
-        Difficulty5Button.setOnClickListener(difficulty5ButtonListener);
-        //View rootView = inflater.inflate(R.layout.fragment_quiz, container, false);
-        //TextView textView = (TextView) rootView.findViewById(R.id.section_label);
-        //textView.setText(getString(R.string.section_format, getArguments().getInt(ARG_SECTION_NUMBER)));
+        Timer = (TextView) findViewById( R.id.timer );
+        Timer.setOnClickListener(timerButtonListner);
+        Settings = (ImageView) findViewById( R.id.settings);
+        Settings.setOnClickListener(settingsButtonListner);
+        HigherDifficulty = (TextView) findViewById(R.id.difficulty_higher);
+        LowerDifficulty = (TextView) findViewById(R.id.difficulty_lower);
+        LevelIndicator = (TextView) findViewById(R.id.level);
+        HigherDifficulty.setOnClickListener(HigherDifficultyListener);
+        LowerDifficulty.setOnClickListener(LowerDifficultyListener);
         BadLabel = (TextView) findViewById(R.id.GoodLabel);
         GoodLabel = (TextView) findViewById(R.id.BadLabel);
         TextToTranslate = (TextView) findViewById(R.id.fullscreen_content);
-        //TotalWordsNumber = (TextView)findViewById(R.id.TotalWordsNumber);
-        //GuesedWordsNumber = (TextView)findViewById(R.id.GuesedWordsNumber);
         WrongWordsNumber = (TextView) findViewById(R.id.WrongWordsNumber);
         LeftWordsLabel = (TextView) findViewById(R.id.LeftWordsLabel);
-        //LastTranslation = (TextView)findViewById(R.id.LastTranslation);
-        SwitchLanguagesButton = (TextView)findViewById(R.id.switchLanguagesButton);
+        SwitchLanguagesButton = (TextView) findViewById(R.id.switchLanguagesButton);
 
         buttons[0] = (Button) findViewById(R.id.button0);
         buttons[1] = (Button) findViewById(R.id.button1);
@@ -732,22 +742,102 @@ public class QuizActivity extends AppCompatActivity {
         buttons[4].setOnClickListener(buttonListener4);
         SwitchLanguagesButton.setOnClickListener(buttonListenerSwitchLanguages);
 
-        EmptyTable(this, "Basic");
-        if(false)
-        {
-            ReadCSV(this, "DeEn");
-            WriteSQL(this, "Saved");
-            ReadSQL(this, "", 0);
-            FilterRecords(0);
+        WordReaderDbHelper mDbHelper = new WordReaderDbHelper(this);
+        // Gets the data repository in write mode
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+
+        countDownTimer = new CountDownTimer(30000, 1000) {
+            public void onTick(long millisUntilFinished) {
+                millis++;
+                if(displayCumulatedConsumeForCurentWord)
+                {
+                    Timer.setText(new SimpleDateFormat("mm:ss:SS").format(new Date(currentWord.TimeSpend + millis)));
+                }
+                else
+                {
+                    Timer.setText(new SimpleDateFormat("mm:ss:SS").format(new Date(millis)));
+                }
+            }
+
+            public void onFinish() {
+                millis = 0;
+                currentWord = CreateQuiz(wordsToBeDiscovered);
+            }
+        };
+
+        if (wordsToBeDiscovered.size() == 0 && getLastInsertId(db, "") < 0) {
+            if (false) {
+                ReadCSV(this, "DeEn");
+                WriteSQL(this, "Saved");
+                FilterRecords(difficulty);
+            } else {
+                ReadCSV(this, "Online DeEn");
+            }
+
         }
-        else
-        {
-            ReadCSV(this, "Online DeEn");
+        else {
+            WriteSQL(this, "Saved");
+            FilterRecords(difficulty);
+        }
+    }
+    // Request code to identify the response of a web request
+    int HTTP_REQUEST_CODE = 98;
+
+
+    //static String currentLine = "";
+    public List<Word> ReadCSV(Context context, String fileName) {
+        AssetManager assetManager = context.getAssets();
+
+        try {
+            if (fileName == "Online DeEn") {
+                String URL = "http://profimedica.ro/de/de.csv";
+                PendingIntent pendingResult = createPendingResult(HTTP_REQUEST_CODE, new Intent(), 0);
+                Intent intent = new Intent(getApplicationContext(), DownloadIntentService.class);
+                intent.putExtra(DownloadIntentService.URL_EXTRA, URL);
+                intent.putExtra(DownloadIntentService.PENDING_RESULT_EXTRA, pendingResult);
+                startService(intent);
+            }
+            if (fileName == "Basic") {
+                InputStream csvStream = assetManager.open(fileName + ".csv");
+                InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
+                CSVReader csvReader = new CSVReader(csvStreamReader);
+                String[] line;
+                // throw away the header
+                csvReader.readNext();
+
+                while ((line = csvReader.readNext()) != null) {
+                    Word word = new Word(null, line[1], line[2], 0, 0, 0, 0, Long.valueOf(0), "FrEn");
+                    word.Unsaved = true;
+                    wordsToBeDiscovered.add(word);
+                }
+            } else {
+                InputStream csvStream = assetManager.open(fileName + ".csv");
+                InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
+                CSVReader csvReader = new CSVReader(csvStreamReader);
+                String[] line;
+
+                // throw away the header
+                csvReader.readNext();
+
+                while ((line = csvReader.readNext()) != null) {
+                    //currentLine = line[0];
+                    //Log.e(">>>>>", currentLine );
+                    line = line[0].split("\\ = ");
+                    Word word = new Word(null, line[0], line[1], 0, 0, 0, 0, Long.valueOf(0), "DeEn");
+                    word.Unsaved = true;
+                    wordsToBeDiscovered.add(word);
+                }
+            }
+        } catch (IOException e) {
+            //Log.e(">>>>>", currentLine );
+            e.printStackTrace();
         }
 
+        return wordsToBeDiscovered;
     }
 
-    @Override
+
+        @Override
     protected void onPostCreate(Bundle savedInstanceState) {
         super.onPostCreate(savedInstanceState);
 
@@ -758,6 +848,15 @@ public class QuizActivity extends AppCompatActivity {
     }
 
     private void toggle() {
+        if(nativeFirst)
+        {
+            TTSnative.speak(currentWord.Native, TextToSpeech.QUEUE_FLUSH, null);
+        }
+        else {
+            TTSforeign.speak(currentWord.Foreign, TextToSpeech.QUEUE_FLUSH, null);
+        }
+
+
         if (mVisible) {
             hide();
         } else {
@@ -782,12 +881,12 @@ public class QuizActivity extends AppCompatActivity {
     @SuppressLint("InlinedApi")
     private void show() {
         // Show the system bar
-        mContentView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+        //mContentView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
         mVisible = true;
 
         // Schedule a runnable to display UI elements after a delay
-        mHideHandler.removeCallbacks(mHidePart2Runnable);
-        mHideHandler.postDelayed(mShowPart2Runnable, UI_ANIMATION_DELAY);
+        //mHideHandler.removeCallbacks(mHidePart2Runnable);
+        //mHideHandler.postDelayed(mShowPart2Runnable, UI_ANIMATION_DELAY);
     }
 
     /**

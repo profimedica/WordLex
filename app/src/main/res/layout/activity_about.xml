@@ -1,0 +1,51 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0099cc"
+    tools:context="com.profimedica.wordlex.AboutActivity">
+
+    <!-- The primary full-screen view. This can be replaced with whatever view
+         is needed to present your content, e.g. VideoView, SurfaceView,
+         TextureView, etc. -->
+
+    <!-- This FrameLayout insets its children based on system windows using
+         android:fitsSystemWindows. -->
+
+    <ScrollView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:orientation="vertical"
+            android:layout_height="wrap_content">
+             <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/imageView"
+        android:src="@drawable/legend"
+        android:layout_gravity="center" />
+    <TextView
+        android:layout_width="match_parent"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:text="Legend:\n
+        On the first row:\n
+        Left: counter of good(blue) and wrong(red) hits you gave to this word.\n
+        Center: Seconds speed with this word now(gray) or cumulated (black). Click to switch.\n
+        Right: Words left in this level (blue) and wong hits accumulated (red) in this level.\n
+        On the second row:\n
+        Left: Difficulty level. Click arrows to navigate. play more to make more levels available.\n
+        Center: Language direction for quiz.\n
+        Right: Click the tree arrows to navigate to statistics."
+        android:layout_height="wrap_content" />
+            <TextView
+                android:layout_width="match_parent"
+                android:paddingLeft="20dp"
+                android:paddingTop="20dp"
+                android:paddingRight="20dp"
+                android:text="Click the word to hear again.\n On the bottom bar you can see the previews word with it`s correct translation."
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

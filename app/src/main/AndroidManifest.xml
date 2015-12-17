@@ -34,9 +34,9 @@
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
         <activity
             android:name=".LoginActivity"
-            android:screenOrientation="portrait"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_login"
+            android:screenOrientation="portrait"
             android:theme="@style/FullscreenTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -47,8 +47,8 @@
         <activity
             android:name=".QuizActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="WordLex"
             android:screenOrientation="portrait"
-            android:label="@string/title_activity_quiz"
             android:theme="@style/FullscreenTheme" />
         <activity
             android:name=".StatisticsActivity"
@@ -57,7 +57,7 @@
             android:theme="@style/FullscreenTheme" />
         <activity
             android:name=".ItemListActivity"
-            android:label="@string/title_item_list"
+            android:label="Statistics"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".ItemDetailActivity"
@@ -71,7 +71,7 @@
         <activity
             android:name=".FriendListActivity"
             android:label="@string/title_friend_list"
-            android:theme="@style/AppTheme.NoActionBar"></activity>
+            android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".FriendDetailActivity"
             android:label="@string/title_friend_detail"
@@ -81,9 +81,19 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.profimedica.wordlex.FriendListActivity" />
         </activity>
+
         <service
             android:name=".DownloadIntentService"
-            android:exported="false"/>
+            android:exported="false" />
+
+        <activity
+            android:name=".SettingsActivity"
+            android:label="@string/title_activity_settings" />
+        <activity
+            android:name=".AboutActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_about"
+            android:theme="@style/FullscreenTheme"></activity>
     </application>
 
 </manifest>

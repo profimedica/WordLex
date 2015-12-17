@@ -12,7 +12,6 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
-
 import com.facebook.AccessToken;
 import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
@@ -23,8 +22,9 @@ import com.facebook.GraphResponse;
 import com.facebook.HttpMethod;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
-
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -120,6 +120,7 @@ public class LoginActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 infoTextView.setText("Please wait...");
+                //ReadCSV(LoginActivity.this, "Online DeEn");
                 Intent intent = new Intent(LoginActivity.this, QuizActivity.class);
                 startActivity(intent);
             }
@@ -142,7 +143,7 @@ public class LoginActivity extends AppCompatActivity {
         callbackManager = CallbackManager.Factory.create();
         loginButton = (LoginButton) findViewById(R.id.login_button);
         loginButton.setReadPermissions(Arrays.asList("public_profile, email, user_birthday, user_friends", "user_posts", "user_likes"));
-// If using in a fragment
+        // If using in a fragment
         //loginButton.setFragment(this);
         // Other app specific specialization
 
@@ -177,6 +178,11 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
     }
+
+    // Request code to identify the response of a web request
+    int HTTP_REQUEST_CODE = 98;
+    // Words to be discovered
+    List<Word> wordsToBeDiscovered = new ArrayList<>();
 
     private void DoFB() {
         new GraphRequest(
@@ -262,13 +268,13 @@ public class LoginActivity extends AppCompatActivity {
     @SuppressLint("InlinedApi")
     private void show() {
         // Show the system bar
-        mContentView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+        //mContentView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+        //        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
         mVisible = true;
 
         // Schedule a runnable to display UI elements after a delay
-        mHideHandler.removeCallbacks(mHidePart2Runnable);
-        mHideHandler.postDelayed(mShowPart2Runnable, UI_ANIMATION_DELAY);
+        // mHideHandler.removeCallbacks(mHidePart2Runnable);
+        // mHideHandler.postDelayed(mShowPart2Runnable, UI_ANIMATION_DELAY);
     }
 
     /**
