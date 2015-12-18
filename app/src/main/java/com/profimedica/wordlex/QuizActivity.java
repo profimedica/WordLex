@@ -11,16 +11,12 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.media.MediaPlayer;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.CountDownTimer;
 import android.os.StrictMode;
-import android.speech.tts.UtteranceProgressListener;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Base64;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SoundEffectConstants;
@@ -31,11 +27,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
-import com.opencsv.CSVReader;
-
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -552,15 +545,8 @@ public class QuizActivity extends AppCompatActivity {
                     //handleRSS(data);
 
                     String result = data.getStringExtra("url");
-                    String[] inputLines = result.split("\\r?\\n");
-                    for(int i=1; i<inputLines.length; i++){
-                        String[] splitedLine = inputLines[i].split("\\ = ");
-                        if(splitedLine.length > 1) {
-                            Word word = new Word(null, splitedLine[0], splitedLine[1], 0, 0, 0, 0, Long.valueOf(0), "DeEn");
-                            word.Unsaved = true;
-                            wordsToBeDiscovered.add(word);
-                        }
-                    }
+
+                    ConsumeString(result);
 
                     WriteSQL(this, "Saved");
                     FilterRecords(difficulty);
@@ -569,6 +555,19 @@ public class QuizActivity extends AppCompatActivity {
             }
         }
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    private void ConsumeString(String result)
+    {
+        String[] inputLines = result.split("\\r?\\n");
+        for(int i=1; i<inputLines.length; i++){
+            String[] splitedLine = inputLines[i].split("\\ = ");
+            if(splitedLine.length > 1) {
+                Word word = new Word(null, splitedLine[0], splitedLine[1], 0, 0, 0, 0, Long.valueOf(0), "DeEn");
+                word.Unsaved = true;
+                wordsToBeDiscovered.add(word);
+            }
+        }
     }
 
     protected void onDestroy() {
@@ -799,34 +798,14 @@ public class QuizActivity extends AppCompatActivity {
             }
             if (fileName == "Basic") {
                 InputStream csvStream = assetManager.open(fileName + ".csv");
-                InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
-                CSVReader csvReader = new CSVReader(csvStreamReader);
-                String[] line;
-                // throw away the header
-                csvReader.readNext();
-
-                while ((line = csvReader.readNext()) != null) {
-                    Word word = new Word(null, line[1], line[2], 0, 0, 0, 0, Long.valueOf(0), "FrEn");
-                    word.Unsaved = true;
-                    wordsToBeDiscovered.add(word);
-                }
+                // InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
+                String input = convertStreamToString(csvStream);
+                ConsumeString(input);
             } else {
                 InputStream csvStream = assetManager.open(fileName + ".csv");
-                InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
-                CSVReader csvReader = new CSVReader(csvStreamReader);
-                String[] line;
-
-                // throw away the header
-                csvReader.readNext();
-
-                while ((line = csvReader.readNext()) != null) {
-                    //currentLine = line[0];
-                    //Log.e(">>>>>", currentLine );
-                    line = line[0].split("\\ = ");
-                    Word word = new Word(null, line[0], line[1], 0, 0, 0, 0, Long.valueOf(0), "DeEn");
-                    word.Unsaved = true;
-                    wordsToBeDiscovered.add(word);
-                }
+                // InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
+                String input = convertStreamToString(csvStream);
+                ConsumeString(input);
             }
         } catch (IOException e) {
             //Log.e(">>>>>", currentLine );
@@ -836,6 +815,10 @@ public class QuizActivity extends AppCompatActivity {
         return wordsToBeDiscovered;
     }
 
+    static String convertStreamToString(java.io.InputStream is) {
+        java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+        return s.hasNext() ? s.next() : "";
+    }
 
         @Override
     protected void onPostCreate(Bundle savedInstanceState) {
