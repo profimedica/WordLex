@@ -153,7 +153,7 @@ public class LoginActivity extends AppCompatActivity {
             public void onSuccess(LoginResult loginResult) {
                 infoTextView.setText("Please wait...");
 
-                Intent intent = new Intent(LoginActivity.this, FriendListActivity.class);
+                Intent intent = new Intent(LoginActivity.this, QuizActivity.class);
                 startActivity(intent);
                 /*
                 if (AccessToken.getCurrentAccessToken() == null) {

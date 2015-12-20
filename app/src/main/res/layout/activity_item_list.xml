@@ -26,8 +26,154 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
-
-        <include layout="@layout/item_list" />
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <Button
+                    android:id="@+id/bNative"
+                    android:layout_width="wrap_content"
+                    android:text="Native"
+                    android:onClick="SortBy"
+                    android:tag="1"
+                    android:layout_height="wrap_content" />
+                <Button
+                    android:id="@+id/bGood"
+                    android:layout_width="wrap_content"
+                    android:text="Good"
+                    android:onClick="SortBy"
+                    android:tag="3"
+                    android:layout_height="wrap_content" />
+                <Button
+                    android:id="@+id/bBad"
+                    android:layout_width="wrap_content"
+                    android:text="Bad"
+                    android:onClick="SortBy"
+                    android:tag="4"
+                    android:layout_height="wrap_content" />
+                <Button
+                    android:id="@+id/bSpent"
+                    android:layout_width="wrap_content"
+                    android:text="Spent"
+                    android:onClick="SortBy"
+                    android:tag="5"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+            <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+                <Button
+                    android:id="@+id/bForeign"
+                    android:layout_width="wrap_content"
+                    android:text="Foreign"
+                    android:onClick="SortBy"
+                    android:tag="2"
+                    android:layout_height="wrap_content" />
+                <Button
+                    android:id="@+id/bFGood"
+                    android:layout_width="wrap_content"
+                    android:text="FGood"
+                    android:onClick="SortBy"
+                    android:tag="6"
+                    android:layout_height="wrap_content" />
+                <Button
+                    android:id="@+id/bFBad"
+                    android:layout_width="wrap_content"
+                    android:text="FBad"
+                    android:onClick="SortBy"
+                    android:tag="7"
+                    android:layout_height="wrap_content" />
+                <Button
+                    android:id="@+id/bFSpent"
+                    android:layout_width="wrap_content"
+                    android:text="FSpent"
+                    android:onClick="SortBy"
+                    android:tag="8"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                >
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                >
+            <TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:id="@+id/StatisticsTable"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:stretchColumns="1">
+            <TableRow>
+                <TextView
+                    android:id="@+id/Spent"
+                    android:text="Spent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#ddd"
+                    android:maxWidth="50dp"
+                    />
+                <TextView
+                    android:id="@+id/Good"
+                    android:text="Good"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#080"
+                    />
+                <TextView
+                    android:id="@+id/Bad"
+                    android:text="Bad"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#800"
+                    />
+                <TextView
+                    android:id="@+id/Native"
+                    android:text="Native"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#000"
+                    />
+                <TextView
+                    android:id="@+id/Foreign"
+                    android:text="Foreign"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#777"
+                    />
+                <TextView
+                    android:id="@+id/FGood"
+                    android:text="FGood"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#080"
+                    />
+                <TextView
+                    android:id="@+id/FBad"
+                    android:text="FBad"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#800"
+                    />
+                <TextView
+                    android:id="@+id/FSpent"
+                    android:text="FSpent"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="#ddd"
+                    android:maxWidth="50dp"
+                    />
+            </TableRow>
+            </TableLayout>
+            </ScrollView>
+            </HorizontalScrollView>
+            <!--include layout="@layout/item_list" /-->
+        </LinearLayout>
     </FrameLayout>
 
     <android.support.design.widget.FloatingActionButton

@@ -46,6 +46,7 @@ import android.speech.tts.TextToSpeech;
 public class QuizActivity extends AppCompatActivity {
 
     int difficulty = 0;
+    boolean standBy = false;
     TextView Timer;
     ImageView Settings;
     CountDownTimer countDownTimer;
@@ -92,8 +93,8 @@ public class QuizActivity extends AppCompatActivity {
     TextView SwitchLanguagesButton = null;
 
     TextView SortByDifficultyButton;
-    TextView HigherDifficulty;
-    TextView LowerDifficulty;
+    ImageView HigherDifficulty;
+    ImageView LowerDifficulty;
     TextView LevelIndicator;
 
     TextView GoodLabel = null;
@@ -216,18 +217,9 @@ public class QuizActivity extends AppCompatActivity {
     };
 
     private void FillStatistics(boolean guessed) {
-        if (!guessed) {
-            speacking = true;
-            if (nativeFirst) {
-                //TTSforeign.speak(currentWord.Foreign, TextToSpeech.QUEUE_FLUSH, null);
-                AnteNative.setText(currentWord.Native);
-                AnteForeign.setText(currentWord.Foreign);
-            } else {
-                //TTSnative.speak(currentWord.Native, TextToSpeech.QUEUE_FLUSH, null);
-                AnteNative.setText(currentWord.Foreign);
-                AnteForeign.setText(currentWord.Native);
-            }
-        }
+        //if (!guessed) {
+            standBy = false;
+        //}
         if(!guessed)
         {
             AnteNative.setTextColor(Color.MAGENTA);
@@ -238,7 +230,8 @@ public class QuizActivity extends AppCompatActivity {
             AnteNative.setTextColor(Color.GRAY);
             AnteForeign.setTextColor(Color.GRAY);
         }
-
+        AnteNative.setText(currentWord.Native);
+        AnteForeign.setText(currentWord.Foreign);
 
         totalHits++;
         currentWord.Unsaved = true;
@@ -335,6 +328,17 @@ public class QuizActivity extends AppCompatActivity {
         countDownTimer.cancel();
         millis = 0;
         countDownTimer.start();
+
+        if(standBy) {
+            AnteNative.setText("MODE");
+            AnteForeign.setText("StandBy");
+            if (nativeFirst) {
+                TTSforeign.speak(currentWord.Foreign, TextToSpeech.QUEUE_FLUSH, null);
+            } else {
+                TTSnative.speak(currentWord.Native, TextToSpeech.QUEUE_FLUSH, null);
+            }
+        }
+
         return words.get(currentWordIndex);
     }
 
@@ -376,6 +380,7 @@ public class QuizActivity extends AppCompatActivity {
                     WordReaderContract.WordEntry.COLUMN_NAME_FGOOD + " , " +
                     WordReaderContract.WordEntry.COLUMN_NAME_FBAD + " , " +
                     WordReaderContract.WordEntry.COLUMN_NAME_SPENT + " , " +
+                    WordReaderContract.WordEntry.COLUMN_NAME_FSPENT + " , " +
                     WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY +
                     " ) VALUES ( '" +
                     word.Native + "' , '" +
@@ -384,7 +389,8 @@ public class QuizActivity extends AppCompatActivity {
                     word.Bad + " , " +
                     word.FGood + " , " +
                     word.FBad + " , " +
-                    word.TimeSpend + " , '" +
+                    word.TimeSpend + " , " +
+                    word.FSpend + " , '" +
                     word.Dictionary +
                     "' ) ";
             db.execSQL(SQL);
@@ -400,6 +406,7 @@ public class QuizActivity extends AppCompatActivity {
                     WordReaderContract.WordEntry.COLUMN_NAME_FGOOD + " = " + word.FGood + " , " +
                     WordReaderContract.WordEntry.COLUMN_NAME_FBAD + " = " + word.FBad + " , " +
                     WordReaderContract.WordEntry.COLUMN_NAME_SPENT + " = " + word.TimeSpend + " , " +
+                    WordReaderContract.WordEntry.COLUMN_NAME_FSPENT + " = " + word.FSpend + " , " +
                     WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY + " = '" + word.Dictionary + "' WHERE " +
                     WordReaderContract.WordEntry.COLUMN_NAME_ENTRY_ID + " = " + word.Id;
             db.execSQL(SQL);
@@ -468,6 +475,7 @@ public class QuizActivity extends AppCompatActivity {
                 WordReaderContract.WordEntry.COLUMN_NAME_FGOOD + " , " +
                 WordReaderContract.WordEntry.COLUMN_NAME_FBAD + " , " +
                 WordReaderContract.WordEntry.COLUMN_NAME_SPENT + " , " +
+                WordReaderContract.WordEntry.COLUMN_NAME_FSPENT + " , " +
                 WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY +
                 " FROM " + WordReaderContract.WordEntry.TABLE_NAME +
                 " WHERE ";
@@ -476,7 +484,13 @@ public class QuizActivity extends AppCompatActivity {
         } else {
             SQL += WordReaderContract.WordEntry.COLUMN_NAME_FBAD;
         }
+        if(difficulty>0) {
             SQL += " >= " + difficulty + " ORDER BY ";
+        }
+        else
+        {
+            SQL += " = " + difficulty + " ORDER BY ";
+        }
             SQL += WordReaderContract.WordEntry.COLUMN_NAME_FBAD + " DESC";
         Cursor cursor = db.rawQuery(SQL, null);
     /*
@@ -508,6 +522,7 @@ public class QuizActivity extends AppCompatActivity {
                     cursor.getInt(cursor.getColumnIndex(WordReaderContract.WordEntry.COLUMN_NAME_GOOD)),
                     cursor.getInt(cursor.getColumnIndex(WordReaderContract.WordEntry.COLUMN_NAME_BAD)),
                     cursor.getLong(cursor.getColumnIndex(WordReaderContract.WordEntry.COLUMN_NAME_SPENT)),
+                    cursor.getLong(cursor.getColumnIndex(WordReaderContract.WordEntry.COLUMN_NAME_FSPENT)),
                     cursor.getString(cursor.getColumnIndex(WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY))*/
                     cursor.getLong(0),
                     cursor.getString(1),
@@ -517,7 +532,8 @@ public class QuizActivity extends AppCompatActivity {
                     cursor.getInt(5),
                     cursor.getInt(6),
                     cursor.getLong(7),
-                    cursor.getString(8)
+                    cursor.getLong(8),
+                    cursor.getString(9)
             );
             wordsToBeDiscovered.add(word);
             cursor.moveToNext();
@@ -539,6 +555,7 @@ public class QuizActivity extends AppCompatActivity {
                 case DownloadIntentService.ERROR_CODE:
                     ReadCSV(this, "DeEn");
                     WriteSQL(this, "Saved");
+                    Toast.makeText(getApplicationContext(), "Generated from SQLite", Toast.LENGTH_SHORT).show();
                     FilterRecords(difficulty);//handleError(data);
                     break;
                 case DownloadIntentService.RESULT_CODE:
@@ -547,6 +564,7 @@ public class QuizActivity extends AppCompatActivity {
                     String result = data.getStringExtra("url");
 
                     ConsumeString(result);
+                    Toast.makeText(getApplicationContext(), "Generated from WEB", Toast.LENGTH_SHORT).show();
 
                     WriteSQL(this, "Saved");
                     FilterRecords(difficulty);
@@ -563,7 +581,7 @@ public class QuizActivity extends AppCompatActivity {
         for(int i=1; i<inputLines.length; i++){
             String[] splitedLine = inputLines[i].split("\\ = ");
             if(splitedLine.length > 1) {
-                Word word = new Word(null, splitedLine[0], splitedLine[1], 0, 0, 0, 0, Long.valueOf(0), "DeEn");
+                Word word = new Word(null, splitedLine[0], splitedLine[1], 0, 0, 0, 0, Long.valueOf(0), Long.valueOf(0), "DeEn");
                 word.Unsaved = true;
                 wordsToBeDiscovered.add(word);
             }
@@ -717,8 +735,8 @@ public class QuizActivity extends AppCompatActivity {
         Timer.setOnClickListener(timerButtonListner);
         Settings = (ImageView) findViewById( R.id.settings);
         Settings.setOnClickListener(settingsButtonListner);
-        HigherDifficulty = (TextView) findViewById(R.id.difficulty_higher);
-        LowerDifficulty = (TextView) findViewById(R.id.difficulty_lower);
+        HigherDifficulty = (ImageView) findViewById(R.id.difficulty_higher);
+        LowerDifficulty = (ImageView) findViewById(R.id.difficulty_lower);
         LevelIndicator = (TextView) findViewById(R.id.level);
         HigherDifficulty.setOnClickListener(HigherDifficultyListener);
         LowerDifficulty.setOnClickListener(LowerDifficultyListener);
@@ -761,12 +779,14 @@ public class QuizActivity extends AppCompatActivity {
             public void onFinish() {
                 millis = 0;
                 currentWord = CreateQuiz(wordsToBeDiscovered);
+                standBy = true;
             }
         };
 
         if (wordsToBeDiscovered.size() == 0 && getLastInsertId(db, "") < 0) {
             if (false) {
                 ReadCSV(this, "DeEn");
+
                 WriteSQL(this, "Saved");
                 FilterRecords(difficulty);
             } else {
@@ -801,7 +821,9 @@ public class QuizActivity extends AppCompatActivity {
                 // InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
                 String input = convertStreamToString(csvStream);
                 ConsumeString(input);
+                Toast.makeText(getApplicationContext(), "Generated from CSV", Toast.LENGTH_SHORT).show();
             } else {
+                Toast.makeText(getApplicationContext(), "Generated from SQLite", Toast.LENGTH_SHORT).show();
                 InputStream csvStream = assetManager.open(fileName + ".csv");
                 // InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
                 String input = convertStreamToString(csvStream);

@@ -21,6 +21,7 @@ public final class WordReaderContract {
         public static final String COLUMN_NAME_FGOOD = "`fgood`";
         public static final String COLUMN_NAME_FBAD = "`fbad`";
         public static final String COLUMN_NAME_SPENT = "`spent`";
+        public static final String COLUMN_NAME_FSPENT = "`fspent`";
         public static final String COLUMN_NAME_DICTIONARY = "`dictionary`";
     }
 }

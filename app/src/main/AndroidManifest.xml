@@ -57,6 +57,7 @@
             android:theme="@style/FullscreenTheme" />
         <activity
             android:name=".ItemListActivity"
+            android:screenOrientation="portrait"
             android:label="Statistics"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity

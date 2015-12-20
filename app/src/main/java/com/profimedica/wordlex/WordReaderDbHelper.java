@@ -21,7 +21,8 @@ import android.database.sqlite.SQLiteOpenHelper;
                 WordReaderContract.WordEntry.COLUMN_NAME_FGOOD + INT_TYPE + COMMA_SEP +
                 WordReaderContract.WordEntry.COLUMN_NAME_FBAD + INT_TYPE + COMMA_SEP +
                 WordReaderContract.WordEntry.COLUMN_NAME_SPENT + INT_TYPE + COMMA_SEP +
-        WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY + TEXT_TYPE +
+                WordReaderContract.WordEntry.COLUMN_NAME_FSPENT + INT_TYPE + COMMA_SEP +
+                WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY + TEXT_TYPE +
         " )";
 
     private static final String SQL_DELETE_ENTRIES = "DROP TABLE IF EXISTS " + WordReaderContract.WordEntry.TABLE_NAME;

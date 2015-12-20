@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -15,6 +16,9 @@ import android.support.design.widget.Snackbar;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -36,6 +40,30 @@ public class ItemListActivity extends AppCompatActivity {
      * device.
      */
     private boolean mTwoPane;
+    boolean ascendingOrder = true;
+    public enum Criteria {
+        cNative, cForeign, cGood, cBad, cSpent, cFGood, cFBad, cFSpent, cDictionary
+    }
+    Criteria criteria = Criteria.cSpent;
+
+
+    public Button bNativeView;
+    public Button bGoodView;
+    public Button bBadView;
+    public Button bSpentView;
+    public Button bForeignView;
+    public Button bFGoodView;
+    public Button bFBadView;
+    public Button bFSpentView;
+
+    public TextView mNativeView;
+    public TextView mGoodView;
+    public TextView mBadView;
+    public TextView mSpentView;
+    public TextView mForeignView;
+    public TextView mFGoodView;
+    public TextView mFBadView;
+    public TextView mFSpentView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,15 +88,33 @@ public class ItemListActivity extends AppCompatActivity {
         setupRecyclerView((RecyclerView) recyclerView);
 
         if (findViewById(R.id.item_detail_container) != null) {
-            // The detail container view will be present only in the
-            // large-screen layouts (res/values-w900dp).
-            // If this view is present, then the
-            // activity should be in two-pane mode.
             mTwoPane = true;
         }
+
+
+        bNativeView = (Button) findViewById(R.id.bNative);
+        bGoodView = (Button) findViewById(R.id.bGood);
+        bBadView = (Button) findViewById(R.id.bBad);
+        bSpentView = (Button) findViewById(R.id.bSpent);
+        bForeignView = (Button) findViewById(R.id.bForeign);
+        bFGoodView = (Button) findViewById(R.id.bFGood);
+        bFBadView = (Button) findViewById(R.id.bFBad);
+        bFSpentView = (Button) findViewById(R.id.bFSpent);
+
+        mNativeView = (TextView) findViewById(R.id.Native);
+        mGoodView = (TextView) findViewById(R.id.Good);
+        mBadView = (TextView) findViewById(R.id.Bad);
+        mSpentView = (TextView) findViewById(R.id.Spent);
+        mForeignView = (TextView) findViewById(R.id.Foreign);
+        mFGoodView = (TextView) findViewById(R.id.FGood);
+        mFBadView = (TextView) findViewById(R.id.FBad);
+        mFSpentView = (TextView) findViewById(R.id.FSpent);
+
+        DisplaySortedBy(4);
+        //SortBy(ItemListActivity.this);
     }
 
-    public List<Word> ReadSQL(Context context, String tableName, int difficulty) {
+    public List<Word> ReadSQL(int criteria) {
         WordReaderDbHelper mDbHelper = new WordReaderDbHelper(this);
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
         String SQL = "SELECT " +
@@ -80,11 +126,39 @@ public class ItemListActivity extends AppCompatActivity {
                 WordReaderContract.WordEntry.COLUMN_NAME_FGOOD + " , " +
                 WordReaderContract.WordEntry.COLUMN_NAME_FBAD + " , " +
                 WordReaderContract.WordEntry.COLUMN_NAME_SPENT + " , " +
+                WordReaderContract.WordEntry.COLUMN_NAME_FSPENT + " , " +
                 WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY +
                 " FROM " + WordReaderContract.WordEntry.TABLE_NAME +
                 " WHERE " + WordReaderContract.WordEntry.COLUMN_NAME_BAD +
-                " >= " + difficulty + " ORDER BY " +
-                WordReaderContract.WordEntry.COLUMN_NAME_BAD + " DESC";
+                " >= " + 0 + " ORDER BY ";
+        switch(criteria)
+        {
+            case 1:
+                SQL += WordReaderContract.WordEntry.COLUMN_NAME_NATIVE;
+                break;
+            case 2:
+                SQL += WordReaderContract.WordEntry.COLUMN_NAME_FOREIGN;
+                break;
+            case 3:
+                SQL += WordReaderContract.WordEntry.COLUMN_NAME_GOOD;
+                break;
+            case 4:
+                SQL += WordReaderContract.WordEntry.COLUMN_NAME_BAD;
+                break;
+            case 5:
+                SQL += WordReaderContract.WordEntry.COLUMN_NAME_SPENT;
+                break;
+            case 6:
+                SQL += WordReaderContract.WordEntry.COLUMN_NAME_FGOOD;
+                break;
+            case 7:
+                SQL += WordReaderContract.WordEntry.COLUMN_NAME_FBAD;
+                break;
+            case 8:
+                SQL += WordReaderContract.WordEntry.COLUMN_NAME_FSPENT;
+                break;
+        }
+        SQL += ascendingOrder ? " DESC" : " ASC";
         Cursor cursor = db.rawQuery(SQL, null);
         cursor.moveToFirst();
         ArrayList<Word> wordsToBeDiscovered = new ArrayList<Word>();
@@ -98,7 +172,8 @@ public class ItemListActivity extends AppCompatActivity {
                     cursor.getInt(5),
                     cursor.getInt(6),
                     cursor.getLong(7),
-                    cursor.getString(8)
+                    cursor.getLong(8),
+                    cursor.getString(9)
             );
             wordsToBeDiscovered.add(word);
             cursor.moveToNext();
@@ -106,12 +181,80 @@ public class ItemListActivity extends AppCompatActivity {
         return wordsToBeDiscovered;
     }
 
+    public void SortBy(View view) {
+        RecyclerView recyclerView = (RecyclerView) findViewById(R.id.item_list);
+        assert recyclerView != null;
+        int parameter = Integer.valueOf((String) view.getTag());
+        DisplaySortedBy(parameter);
+    }
+
+    private void DisplaySortedBy(int parameter)
+    {
+        List<Word> words = ReadSQL(parameter);
+        //Collections.sort(words);
+        //Collections.reverse(words);
+
+        bNativeView.setBackgroundColor(parameter == 1 ? Color.BLUE : Color.GRAY);
+        bForeignView.setBackgroundColor(parameter == 2 ? Color.BLUE : Color.GRAY);
+        bGoodView.setBackgroundColor(parameter == 3 ? Color.BLUE : Color.GRAY);
+        bBadView.setBackgroundColor(parameter == 4 ? Color.BLUE : Color.GRAY);
+        bSpentView.setBackgroundColor(parameter == 5 ? Color.BLUE : Color.GRAY);
+        bFGoodView.setBackgroundColor(parameter == 6 ? Color.BLUE : Color.GRAY);
+        bFBadView.setBackgroundColor(parameter == 7 ? Color.BLUE : Color.GRAY);
+        bFSpentView.setBackgroundColor(parameter == 8 ? Color.BLUE : Color.GRAY);
+
+        TableLayout statisticsTable = (TableLayout) findViewById(R.id.StatisticsTable);
+
+        for (int position = 0; position <words.size(); position++) {
+            TableRow row= new TableRow(this);
+
+            mNativeView = new TextView(this);
+            mNativeView.setTextColor(Color.GRAY);
+            mGoodView = new TextView(this);
+            mGoodView.setTextColor(Color.GREEN);
+            mBadView = new TextView(this);
+            mBadView.setTextColor(Color.RED);
+            mSpentView = new TextView(this);
+            mSpentView.setTextColor(Color.BLUE);
+            mForeignView = new TextView(this);
+            mForeignView.setTextColor(Color.LTGRAY);
+            mFGoodView = new TextView(this);
+            mFGoodView.setTextColor(Color.GREEN);
+            mFBadView = new TextView(this);
+            mFBadView.setTextColor(Color.RED);
+            mFSpentView = new TextView(this);
+            mFSpentView.setTextColor(Color.GRAY);
+
+            mNativeView.setText(words.get(position).Native);
+            mGoodView.setText(String.valueOf(words.get(position).Good));
+            mBadView.setText(String.valueOf(words.get(position).Bad));
+            mSpentView.setText(String.valueOf(words.get(position).TimeSpend));
+            mForeignView.setText(words.get(position).Foreign);
+            mFGoodView.setText(String.valueOf(words.get(position).FGood));
+            mFBadView.setText(String.valueOf(words.get(position).FBad));
+            mFSpentView.setText(String.valueOf(words.get(position).FSpend));
+
+            row.addView(mSpentView);
+            row.addView(mGoodView);
+            row.addView(mBadView);
+            row.addView(mNativeView);
+            row.addView(mForeignView);
+            row.addView(mFGoodView);
+            row.addView(mFBadView);
+            row.addView(mFSpentView);
+            statisticsTable.addView(row, position);
+
+        }
+        //recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(words));
+     }
+
+    //public void
 
     private void setupRecyclerView(@NonNull RecyclerView recyclerView) {
-        List<Word> words = ReadSQL(this, "", 0);
-        Collections.sort(words);
-        Collections.reverse(words);
-        recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(words));
+        //List<Word> words = ReadSQL(1);
+        //Collections.sort(words);
+        //Collections.reverse(words);
+        //recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(words));
     }
 
     public class SimpleItemRecyclerViewAdapter
@@ -133,8 +276,14 @@ public class ItemListActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(final ViewHolder holder, int position) {
             holder.mItem = mValues.get(position);
-            holder.mIdView.setText(String.valueOf(mValues.get(position).Bad));
-            holder.mContentView.setText(mValues.get(position).Native);
+            holder.mNativeView.setText(mValues.get(position).Native);
+            holder.mGoodView.setText(String.valueOf(mValues.get(position).Good));
+            holder.mBadView.setText(String.valueOf(mValues.get(position).Bad));
+            holder.mSpentView.setText(String.valueOf(mValues.get(position).TimeSpend));
+            holder.mForeignView.setText(mValues.get(position).Foreign);
+            holder.mFGoodView.setText(String.valueOf(mValues.get(position).FGood));
+            holder.mFBadView.setText(String.valueOf(mValues.get(position).FBad));
+            holder.mFSpentView.setText(String.valueOf(mValues.get(position).FSpend));
 
             holder.mView.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -165,20 +314,32 @@ public class ItemListActivity extends AppCompatActivity {
 
         public class ViewHolder extends RecyclerView.ViewHolder {
             public final View mView;
-            public final TextView mIdView;
-            public final TextView mContentView;
+            public final TextView mNativeView;
+            public final TextView mGoodView;
+            public final TextView mBadView;
+            public final TextView mSpentView;
+            public final TextView mForeignView;
+            public final TextView mFGoodView;
+            public final TextView mFBadView;
+            public final TextView mFSpentView;
             public Word mItem;
 
             public ViewHolder(View view) {
                 super(view);
                 mView = view;
-                mIdView = (TextView) view.findViewById(R.id.id);
-                mContentView = (TextView) view.findViewById(R.id.content);
+                mNativeView = (TextView) view.findViewById(R.id.Native);
+                mGoodView = (TextView) view.findViewById(R.id.Good);
+                mBadView = (TextView) view.findViewById(R.id.Bad);
+                mSpentView = (TextView) view.findViewById(R.id.Spent);
+                mForeignView = (TextView) view.findViewById(R.id.Foreign);
+                mFGoodView = (TextView) view.findViewById(R.id.FGood);
+                mFBadView = (TextView) view.findViewById(R.id.FBad);
+                mFSpentView = (TextView) view.findViewById(R.id.FSpent);
             }
 
             @Override
             public String toString() {
-                return super.toString() + " '" + mContentView.getText() + "'";
+                return super.toString() + " '" + mNativeView.getText() + "'";
             }
         }
     }
