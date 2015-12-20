@@ -30,6 +30,11 @@
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_gravity="center_horizontal"
+                android:text="Sort by..."
+                android:layout_height="wrap_content" />
             <LinearLayout
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
@@ -96,7 +101,7 @@
                     android:tag="8"
                     android:layout_height="wrap_content" />
             </LinearLayout>
-            <HorizontalScrollView
+            <!--HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 >
@@ -171,16 +176,10 @@
             </TableRow>
             </TableLayout>
             </ScrollView>
-            </HorizontalScrollView>
-            <!--include layout="@layout/item_list" /-->
-        </LinearLayout>
-    </FrameLayout>
+            </HorizontalScrollView!-->
+        <include layout="@layout/item_list"/>
 
-    <android.support.design.widget.FloatingActionButton
-        android:id="@+id/fab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="@dimen/fab_margin" />
+    </LinearLayout>
+    </FrameLayout>
 
 </android.support.design.widget.CoordinatorLayout>

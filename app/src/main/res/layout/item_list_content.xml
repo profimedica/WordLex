@@ -7,7 +7,7 @@
     <TextView
         android:id="@+id/Spent"
         android:text="Spent"
-        android:layout_width="wrap_content"
+        android:layout_width="40dp"
         android:layout_height="wrap_content"
         android:textColor="#ddd"
         android:maxWidth="50dp"
@@ -15,49 +15,49 @@
     <TextView
         android:id="@+id/Good"
         android:text="Good"
-        android:layout_width="wrap_content"
+        android:layout_width="20dp"
         android:layout_height="wrap_content"
         android:textColor="#080"
         />
     <TextView
         android:id="@+id/Bad"
         android:text="Bad"
-        android:layout_width="wrap_content"
+        android:layout_width="20dp"
         android:layout_height="wrap_content"
         android:textColor="#800"
         />
     <TextView
         android:id="@+id/Native"
         android:text="Native"
-        android:layout_width="wrap_content"
+        android:layout_width="140dp"
         android:layout_height="wrap_content"
         android:textColor="#000"
         />
     <TextView
         android:id="@+id/Foreign"
         android:text="Foreign"
-        android:layout_width="wrap_content"
+        android:layout_width="140dp"
         android:layout_height="wrap_content"
         android:textColor="#777"
         />
     <TextView
         android:id="@+id/FGood"
         android:text="FGood"
-        android:layout_width="wrap_content"
+        android:layout_width="20dp"
         android:layout_height="wrap_content"
         android:textColor="#080"
         />
     <TextView
         android:id="@+id/FBad"
         android:text="FBad"
-        android:layout_width="wrap_content"
+        android:layout_width="20dp"
         android:layout_height="wrap_content"
         android:textColor="#800"
         />
     <TextView
         android:id="@+id/FSpent"
         android:text="FSpent"
-        android:layout_width="wrap_content"
+        android:layout_width="40dp"
         android:layout_height="wrap_content"
         android:textColor="#ddd"
         android:maxWidth="50dp"

@@ -5,6 +5,7 @@ import android.app.Dialog;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.database.Cursor;
@@ -27,6 +28,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.drive.Drive;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
@@ -43,7 +47,37 @@ import android.speech.tts.TextToSpeech;
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
-public class QuizActivity extends AppCompatActivity {
+public class QuizActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+
+    private GoogleApiClient mGoogleApiClient;
+
+    @Override
+    public void onConnected(Bundle connectionHint) {
+        int i =0;
+        // Connected to Google Play services!
+        // The good stuff goes here.
+    }
+
+    @Override
+    public void onConnectionSuspended(int cause) {
+        int i =0;
+        // The connection has been interrupted.
+        // The connection has been interrupted.
+        // Disable any UI components that depend on Google APIs
+        // until onConnected() is called.
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult result) {
+        if (result.hasResolution()) {
+            try {
+                // !!!
+                result.startResolutionForResult(this, result.getErrorCode());
+            } catch (IntentSender.SendIntentException e) {
+                mGoogleApiClient.connect();
+            }
+        }
+    }
 
     int difficulty = 0;
     boolean standBy = false;
@@ -66,6 +100,8 @@ public class QuizActivity extends AppCompatActivity {
 
     // Total words to be discovered in a difficulty specified level
     int initialWordsCount = 0;
+
+    WordReaderDbHelper mDbHelper;
 
     // Total good answares
     int goodButtonNumber = 0;
@@ -414,7 +450,8 @@ public class QuizActivity extends AppCompatActivity {
     }
 
     public boolean WriteSQL(Context context, String fileName) {
-        WordReaderDbHelper mDbHelper = new WordReaderDbHelper(this);
+        if(mDbHelper == null)
+            mDbHelper = new WordReaderDbHelper(this);
         // Gets the data repository in write mode
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
 
@@ -432,7 +469,8 @@ public class QuizActivity extends AppCompatActivity {
     }
 
     public List<Word> EmptyTable(Context context, String tableName) {
-        WordReaderDbHelper mDbHelper = new WordReaderDbHelper(this);
+        if(mDbHelper == null)
+            mDbHelper = new WordReaderDbHelper(this);
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
         String SQL = "DELETE FROM " + WordReaderContract.WordEntry.TABLE_NAME;
         db.execSQL(SQL);
@@ -442,6 +480,8 @@ public class QuizActivity extends AppCompatActivity {
     @Override
     public void onResume() {
         super.onResume();
+        //FilterRecords(difficulty);//handleError(data);
+        //currentWord = CreateQuiz(wordsToBeDiscovered);
         int statusCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(QuizActivity.this);
         if (statusCode != ConnectionResult.SUCCESS) {
             Log.e("statuscode", statusCode + "");
@@ -456,7 +496,7 @@ public class QuizActivity extends AppCompatActivity {
                     errorDialog.show();
                 }
             } else {
-                Toast.makeText(this, "test", Toast.LENGTH_LONG).show();
+                //Toast.makeText(this, "test", Toast.LENGTH_LONG).show();
             }
         }
     }
@@ -464,7 +504,8 @@ public class QuizActivity extends AppCompatActivity {
     public List<Word> ReadSQL(Context context, String tableName, int difficulty) {
         wordsAlreadyDiscovered.clear();
         wordsToBeDiscovered.clear();
-        WordReaderDbHelper mDbHelper = new WordReaderDbHelper(this);
+        if(mDbHelper == null)
+            mDbHelper = new WordReaderDbHelper(this);
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
         String SQL = "SELECT " +
                 WordReaderContract.WordEntry.COLUMN_NAME_ENTRY_ID + " , " +
@@ -555,7 +596,9 @@ public class QuizActivity extends AppCompatActivity {
                 case DownloadIntentService.ERROR_CODE:
                     ReadCSV(this, "DeEn");
                     WriteSQL(this, "Saved");
-                    Toast.makeText(getApplicationContext(), "Generated from SQLite", Toast.LENGTH_SHORT).show();
+                    ///oast.makeText(getApplicationContext(), "Generated from SQLite", Toast.LENGTH_SHORT).show();
+                    AnteNative.setText("DataSource");
+                    AnteForeign.setText("Web Error SQL used instead");
                     FilterRecords(difficulty);//handleError(data);
                     break;
                 case DownloadIntentService.RESULT_CODE:
@@ -564,8 +607,8 @@ public class QuizActivity extends AppCompatActivity {
                     String result = data.getStringExtra("url");
 
                     ConsumeString(result);
-                    Toast.makeText(getApplicationContext(), "Generated from WEB", Toast.LENGTH_SHORT).show();
-
+                    AnteNative.setText("DataSource");
+                    AnteForeign.setText("WEB");
                     WriteSQL(this, "Saved");
                     FilterRecords(difficulty);
 
@@ -593,6 +636,8 @@ public class QuizActivity extends AppCompatActivity {
         // WriteCSV(this, words, "Saved");
         super.onDestroy();
     }
+
+
 
     /**
      * Whether or not the system UI should be auto-hidden after
@@ -667,6 +712,7 @@ public class QuizActivity extends AppCompatActivity {
     };
 
     public void onPause(){
+        WriteSQL(QuizActivity.this, "Saved");
         if(TTSnative !=null){
             TTSnative.stop();
             TTSnative.shutdown();
@@ -678,10 +724,24 @@ public class QuizActivity extends AppCompatActivity {
         super.onPause();
     }
 
+    public void OpenDoc(View view)
+    {
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addApi(Drive.API)
+                .addScope(Drive.SCOPE_FILE)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
+        mGoogleApiClient.connect();
+
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        if(mDbHelper == null)
+            mDbHelper = new WordReaderDbHelper(this);
+        EmptyTable(this, "");
         setContentView(R.layout.activity_quiz);
 
         mVisible = true;
@@ -689,6 +749,7 @@ public class QuizActivity extends AppCompatActivity {
         mContentView = findViewById(R.id.fullscreen_content);
         AnteNative = (TextView)findViewById(R.id.AnteNative);
         AnteForeign = (TextView)findViewById(R.id.AnteForeign);
+
 
 
         TTSforeign = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
@@ -759,7 +820,8 @@ public class QuizActivity extends AppCompatActivity {
         buttons[4].setOnClickListener(buttonListener4);
         SwitchLanguagesButton.setOnClickListener(buttonListenerSwitchLanguages);
 
-        WordReaderDbHelper mDbHelper = new WordReaderDbHelper(this);
+        if(mDbHelper == null)
+            mDbHelper = new WordReaderDbHelper(this);
         // Gets the data repository in write mode
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
 
@@ -808,7 +870,7 @@ public class QuizActivity extends AppCompatActivity {
         AssetManager assetManager = context.getAssets();
 
         try {
-            if (fileName == "Online DeEn") {
+            if (fileName.equals("Online DeEn")) {
                 String URL = "http://profimedica.ro/de/de.csv";
                 PendingIntent pendingResult = createPendingResult(HTTP_REQUEST_CODE, new Intent(), 0);
                 Intent intent = new Intent(getApplicationContext(), DownloadIntentService.class);
@@ -816,14 +878,15 @@ public class QuizActivity extends AppCompatActivity {
                 intent.putExtra(DownloadIntentService.PENDING_RESULT_EXTRA, pendingResult);
                 startService(intent);
             }
-            if (fileName == "Basic") {
+            else if (fileName.equals("Basic")) {
                 InputStream csvStream = assetManager.open(fileName + ".csv");
                 // InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
                 String input = convertStreamToString(csvStream);
                 ConsumeString(input);
-                Toast.makeText(getApplicationContext(), "Generated from CSV", Toast.LENGTH_SHORT).show();
+                AnteNative.setText("DataSource");
+                AnteForeign.setText("Basic");
             } else {
-                Toast.makeText(getApplicationContext(), "Generated from SQLite", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getApplicationContext(), "Generated from SQLite", Toast.LENGTH_SHORT).show();
                 InputStream csvStream = assetManager.open(fileName + ".csv");
                 // InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
                 String input = convertStreamToString(csvStream);
