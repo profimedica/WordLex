@@ -4,6 +4,7 @@
     <!-- Strings related to login -->
     <string name="prompt_email">Email</string>
     <string name="facebook_app_id">132846777084319</string>
+    <string name="server_client_id">830473510121-p259052ipu8ks2dand2vkbpdmlponaev.apps.googleusercontent.com</string>
     <string name="action_sign_in">Sign in or register</string>
     <string name="action_sign_in_short">Sign in</string>
 

@@ -54,8 +54,19 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
     @Override
     public void onConnected(Bundle connectionHint) {
         int i =0;
-        // Connected to Google Play services!
-        // The good stuff goes here.
+        Log.e(" cd ", "Connected with GoogleApiClient");
+        IntentSender intentSender = Drive.DriveApi
+                .newOpenFileActivityBuilder()
+                .setMimeType(new String[] { "text/plain", "text/html" })
+                .build(mGoogleApiClient);
+        try {
+            startIntentSenderForResult(
+                    intentSender, 55, null, 0, 0, 0);
+        } catch (IntentSender.SendIntentException e) {
+            Log.e(" cd ", "Unable to send intent drive", e);
+        }
+
+
     }
 
     @Override
@@ -588,8 +599,11 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == 55) {
+            Log.e("Google API", String.valueOf(resultCode) + " + " +  data.getDataString());
+        }
         if (requestCode == RSS_DOWNLOAD_REQUEST_CODE) {
-            switch (resultCode) {
+                switch (resultCode) {
                 case DownloadIntentService.INVALID_URL_CODE:
                     //handleInvalidURL();
                     break;
@@ -878,7 +892,7 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
                 intent.putExtra(DownloadIntentService.PENDING_RESULT_EXTRA, pendingResult);
                 startService(intent);
             }
-            else if (fileName.equals("Basic")) {
+            if (fileName.equals("Basic")) {
                 InputStream csvStream = assetManager.open(fileName + ".csv");
                 // InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
                 String input = convertStreamToString(csvStream);

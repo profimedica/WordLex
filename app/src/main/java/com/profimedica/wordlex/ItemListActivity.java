@@ -92,7 +92,7 @@ public class ItemListActivity extends AppCompatActivity {
 
         }
         */
-        recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(words));
+        //recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(words));
     }
 
     public void SortBy(View view) {

@@ -1,9 +1,13 @@
 package com.profimedica.wordlex;
 
+import android.accounts.AccountManager;
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.service.carrier.CarrierMessagingService;
+import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -22,6 +26,17 @@ import com.facebook.GraphResponse;
 import com.facebook.HttpMethod;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
+import com.google.android.gms.auth.api.Auth;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.auth.api.signin.GoogleSignInResult;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.SignInButton;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.OptionalPendingResult;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.drive.Drive;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -30,9 +45,38 @@ import java.util.List;
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
-public class LoginActivity extends AppCompatActivity {
+public class LoginActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks {
     LoginButton loginButton;
     CallbackManager callbackManager;
+    GoogleApiClient mGoogleApiClient;
+
+    @Override
+    public void onConnected(Bundle connectionHint) {
+        int i =0;
+        Log.e(" cd ", "Connected with GoogleApiClient");
+        /*IntentSender intentSender = Drive.DriveApi
+                .newOpenFileActivityBuilder()
+                .setMimeType(new String[] { "text/plain", "text/html" })
+                .build(mGoogleApiClient);
+        try {
+            startIntentSenderForResult(
+                    intentSender, 55, null, 0, 0, 0);
+        } catch (IntentSender.SendIntentException e) {
+            Log.e(" cd ", "Unable to send intent drive", e);
+        }*/
+        updateUI(true);
+    }
+
+    @Override
+    public void onConnectionSuspended(int cause) {
+        int i =0;
+        // The connection has been interrupted.
+        // The connection has been interrupted.
+        // Disable any UI components that depend on Google APIs
+        // until onConnected() is called.
+    }
+
+
     /**
      * Whether or not the system UI should be auto-hidden after
      * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
@@ -103,29 +147,41 @@ public class LoginActivity extends AppCompatActivity {
         }
     };
 
+    int RC_SIGN_IN = 22;
+    private void signIn() {
+        Log.e("Google signIn", "signIn method");
+        Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
+        startActivityForResult(signInIntent, RC_SIGN_IN);
+    }
+
+    public GoogleApiClient.OnConnectionFailedListener onConnectionFailedListener = new GoogleApiClient.OnConnectionFailedListener() {
+        @Override
+        public void onConnectionFailed(ConnectionResult connectionResult) {
+            Log.e("Google sign in", "Error: "+ connectionResult.getErrorMessage());
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // initialize FbSDK before layout
         FacebookSdk.sdkInitialize(getApplicationContext());
         setContentView(R.layout.activity_login);
-
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
-
-
         final TextView infoTextView = (TextView)findViewById(R.id.info);
         mContentView = findViewById(R.id.logoImage);
 
+        // Without Login
         mContentView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 infoTextView.setText("Please wait...");
-                //ReadCSV(LoginActivity.this, "Online DeEn");
-                Intent intent = new Intent(LoginActivity.this, QuizActivity.class);
-                startActivity(intent);
+                updateUI(true);
             }
         });
 
+        // Visit address
         infoTextView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -134,27 +190,18 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
-        // Upon interacting with UI controls, delay any scheduled hide()
-        // operations to prevent the jarring behavior of controls going away
-        // while interacting with the UI.
-        findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
-
-        FacebookSdk.sdkInitialize(getApplicationContext());
+        // Facebook login
         callbackManager = CallbackManager.Factory.create();
         loginButton = (LoginButton) findViewById(R.id.login_button);
         loginButton.setReadPermissions(Arrays.asList("public_profile, email, user_birthday, user_friends", "user_posts", "user_likes"));
-        // If using in a fragment
-        //loginButton.setFragment(this);
-        // Other app specific specialization
 
         // Callback registration
         loginButton.registerCallback(callbackManager, new FacebookCallback<LoginResult>() {
             @Override
             public void onSuccess(LoginResult loginResult) {
-                infoTextView.setText("Please wait...");
+                infoTextView.setText("FB: Please wait...");
 
-                Intent intent = new Intent(LoginActivity.this, QuizActivity.class);
-                startActivity(intent);
+                updateUI(true);
                 /*
                 if (AccessToken.getCurrentAccessToken() == null) {
                     waitForFacebookSdk();
@@ -177,6 +224,38 @@ public class LoginActivity extends AppCompatActivity {
                 // App code
             }
         });
+        // Configure sign-in to request the user's ID, email address, and basic
+        // profile. ID and basic profile are included in DEFAULT_SIGN_IN.
+        GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                //.requestIdToken(getString(R.string.server_client_id))
+                .requestEmail()
+                .build();
+        // Build a GoogleApiClient with access to the Google Sign-In API and the
+        // options specified by gso.
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .enableAutoManage(this /* FragmentActivity */, onConnectionFailedListener)
+                //.addApi(Drive.API)
+                //.addScope(Drive.SCOPE_FILE)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(onConnectionFailedListener)
+                .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+                .build();
+
+
+        SignInButton signInButton = (SignInButton) findViewById(R.id.sign_in_button);
+        signInButton.setSize(SignInButton.SIZE_STANDARD);
+        signInButton.setScopes(gso.getScopeArray());
+        signInButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                switch (view.getId()) {
+                    case R.id.sign_in_button:
+                        signIn();
+                        break;
+                }
+            }
+        });
+
     }
 
     // Request code to identify the response of a web request
@@ -230,7 +309,44 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        callbackManager.onActivityResult(requestCode, resultCode, data);
+        //Bundle bundle = data.getExtras();
+        //Log.e("Google Sign in", "bundle:" + bundle.getString(AccountManager.KEY_ACCOUNT_NAME) +" "+ String.valueOf(bundle.getString(AccountManager.KEY_BOOLEAN_RESULT)));
+        // Result returned from launching the Intent from GoogleSignInApi.getSignInIntent(...);
+        if (requestCode == RC_SIGN_IN) {
+            GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
+            handleSignInResult(result);
+        }
+        else if (requestCode == 55) {
+            Log.e("Google API", String.valueOf(resultCode) + " + " +  data.getDataString());
+        }
+        else
+        {
+            callbackManager.onActivityResult(requestCode, resultCode, data);
+        }
+    }
+
+    private void handleSignInResult(GoogleSignInResult result) {
+        Log.e("Google Sign in", "handleSignInResult:" + String.valueOf(result.isSuccess()));// + result.getSignInAccount().getDisplayName() + " - " + result.isSuccess());
+        if (result.isSuccess()) {
+
+
+            // Signed in successfully, show authenticated UI.
+            GoogleSignInAccount acct = result.getSignInAccount();
+            String sss = acct.getDisplayName();
+            updateUI(true);
+        } else {
+            // Signed out, show unauthenticated UI.
+
+            updateUI(false);
+        }
+    }
+
+    private void updateUI(boolean update)
+    {
+        if(update) {
+            Intent intent = new Intent(LoginActivity.this, QuizActivity.class);
+            startActivity(intent);
+        }
     }
 
     @Override
