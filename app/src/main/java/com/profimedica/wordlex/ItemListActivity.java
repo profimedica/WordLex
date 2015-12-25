@@ -4,7 +4,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -17,6 +19,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -31,10 +35,64 @@ import java.util.List;
  */
 public class ItemListActivity extends AppCompatActivity {
 
+
+    public void SaveLex(View view) {
+        String root = Environment.getExternalStorageDirectory().toString();
+        File myDir = new File(root + "/data");
+        if(!myDir.exists()) {
+            boolean created = myDir.mkdirs();
+            created = ! created;
+        }
+
+        String fname = "DeEn.txt";
+        File file = new File(myDir, fname);
+        if (file.exists()) file.delete();
+        try {
+            FileOutputStream out = new FileOutputStream(file);
+            for (Word word: words)
+            {
+                out.write((word.Native + " = " + word.Foreign + " = " + String.valueOf(word.Bad) + " = " + String.valueOf(word.Bad) + " = " + String.valueOf(word.TimeSpend) + " = " + String.valueOf(word.FGood) + " = " + String.valueOf(word.FBad) + " = " + String.valueOf(word.FSpend) + "\n").getBytes());
+            }
+            out.flush();
+            out.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void SendLex(View view)
+    {
+        File file = new File(Environment.getExternalStorageDirectory()
+                .toString() + File.separator + "data" + File.separator + "DeEn.txt");
+        File[] attachmentFiles = new File[1];
+        attachmentFiles[0] = file;
+        ArrayList<Uri> uriList = new ArrayList<Uri>();
+        for (int i = 0; i < attachmentFiles.length; i++) {
+            uriList.add(Uri.fromFile(attachmentFiles[i]));
+        }
+
+
+        Intent emailIntent = new Intent(Intent.ACTION_SEND_MULTIPLE);
+        // set the type to 'email'
+        emailIntent.setType("vnd.android.cursor.dir/email");
+        String to[] = {"start_florin@yahoo.com"};
+        emailIntent .putExtra(Intent.EXTRA_EMAIL, to);
+        // the mail subject
+        emailIntent .putExtra(Intent.EXTRA_SUBJECT, "Subject");
+        emailIntent.putExtra(Intent.EXTRA_TEXT, "This is sent from Android");
+        // the attachment
+        emailIntent .putParcelableArrayListExtra(Intent.EXTRA_STREAM, uriList);
+        /** or use **/
+        //emailIntent.setType("message/rfc822");
+        startActivity(emailIntent);
+    }
+    List<Word> words;
+
     RecyclerView recyclerView;
     private void DisplaySortedBy(int parameter)
     {
-        List<Word> words = ReadSQL(parameter);
+        words = ReadSQL(parameter);
 
         //Collections.sort(words);
         //Collections.reverse(words);
@@ -207,11 +265,12 @@ public class ItemListActivity extends AppCompatActivity {
             // activity should be in two-pane mode.
             mTwoPane = true;
         }
+        SaveLex(null);
     }
 
     private void setupRecyclerView(@NonNull RecyclerView recyclerView) {
         this.recyclerView = recyclerView;
-        List<Word> words = ReadSQL(5);
+        words = ReadSQL(5);
         Collections.sort(words);
         Collections.reverse(words);
         recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(words));

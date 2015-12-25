@@ -228,6 +228,17 @@
         android:id="@+id/radioGroup1"
         android:layout_width="match_parent"
         android:layout_height="match_parent" >
+        <TextView
+            android:layout_marginBottom="10dp"
+            android:gravity="center"
+            android:textStyle="bold"
+            android:textColor="#fff"
+            android:id="@+id/scoreInfo"
+            android:textSize="20dp"
+            android:text="scored 0 points"
+            android:layout_width="match_parent"
+            android:layout_height="25dp"
+            />
         <Button
             android:id="@+id/button0"
             android:padding="13dp"

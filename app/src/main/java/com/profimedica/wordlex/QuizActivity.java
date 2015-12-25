@@ -29,10 +29,17 @@ import android.widget.Toast;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.drive.Drive;
+import com.google.android.gms.drive.DriveApi;
+import com.google.android.gms.drive.DriveContents;
+import com.google.android.gms.drive.DriveFile;
+import com.google.android.gms.drive.DriveId;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -49,29 +56,51 @@ import android.speech.tts.TextToSpeech;
  */
 public class QuizActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
+    static final int RESOLVE_CONNECTION_REQUEST_CODE = 42;
+    static final int RSS_DOWNLOAD_REQUEST_CODE = 98;
+    static final int GET_FILES_REQUEST_CODE = 55;
+
+    int hits = 0;
+    String UserId = "1102342866462716";
     private GoogleApiClient mGoogleApiClient;
 
     @Override
     public void onConnected(Bundle connectionHint) {
         int i =0;
-        Log.e(" cd ", "Connected with GoogleApiClient");
-        IntentSender intentSender = Drive.DriveApi
-                .newOpenFileActivityBuilder()
-                .setMimeType(new String[] { "text/plain", "text/html" })
-                .build(mGoogleApiClient);
-        try {
-            startIntentSenderForResult(
-                    intentSender, 55, null, 0, 0, 0);
-        } catch (IntentSender.SendIntentException e) {
-            Log.e(" cd ", "Unable to send intent drive", e);
-        }
-
+        Log.e("Quiz", "Connected with GoogleApiClient");
 
     }
+
+    ResultCallback<DriveApi.DriveContentsResult> contentsOpenedCallback =
+            new ResultCallback<DriveApi.DriveContentsResult>() {
+                @Override
+                public void onResult(DriveApi.DriveContentsResult result) {
+                    if (!result.getStatus().isSuccess()) {
+                        // display an error saying file can't be opened
+                        return;
+                    }
+                    // DriveContents object contains pointers
+                    // to the actual byte stream
+                    Log.e("Drive.FIle", "OpenDoc result successfuly");
+                    DriveContents contents = result.getDriveContents();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(contents.getInputStream()));
+                    StringBuilder builder = new StringBuilder();
+                    String line;
+                    try {
+                        while ((line = reader.readLine()) != null) {
+                            builder.append(line);
+                        }
+                    }catch(Exception e){}
+                    String contentsAsString = builder.toString();
+                    Log.e("Drive.FIle", contentsAsString);
+
+                }
+            };
 
     @Override
     public void onConnectionSuspended(int cause) {
         int i =0;
+        Log.e("Drive.FIle", "OpenDoc suspended");
         // The connection has been interrupted.
         // The connection has been interrupted.
         // Disable any UI components that depend on Google APIs
@@ -79,20 +108,27 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
     }
 
     @Override
-    public void onConnectionFailed(ConnectionResult result) {
-        if (result.hasResolution()) {
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        Log.e("Drive.FIle", "OpenDoc faild");
+        if (connectionResult.hasResolution()) {
             try {
-                // !!!
-                result.startResolutionForResult(this, result.getErrorCode());
+                connectionResult.startResolutionForResult(this, RESOLVE_CONNECTION_REQUEST_CODE);
             } catch (IntentSender.SendIntentException e) {
-                mGoogleApiClient.connect();
+                Log.e("Drive.FIle", e.getMessage());
+                // Unable to resolve, message user appropriately
             }
+        } else {
+            GooglePlayServicesUtil.getErrorDialog(connectionResult.getErrorCode(), this, 0).show();
+            Log.e("Drive.FIle", "OpenDoc "+String.valueOf(connectionResult.getErrorCode()));
         }
     }
 
     int difficulty = 0;
+    boolean higherLevelDoesNotExist = false;
     boolean standBy = false;
     TextView Timer;
+    TextView ScoreInfo;
+    int score=0;
     ImageView Settings;
     CountDownTimer countDownTimer;
     long millis = 0;
@@ -229,10 +265,18 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
 
     private void FilterRecords(int i) {
         ReadSQL(this, "", i);
-        if(wordsToBeDiscovered.size() < 5)
-        {
-            difficulty--;
-            FilterRecords(difficulty);
+        if(wordsToBeDiscovered.size() < 6) {
+                ReadSQL(this, "", i+1);
+                if(wordsToBeDiscovered.size() < 5) {
+                    if(difficulty > 0) {
+                        difficulty--;
+                        FilterRecords(difficulty);
+                    }
+                }
+            else {
+                    difficulty++;
+                    FilterRecords(difficulty);
+                }
         }
         else
         {
@@ -264,9 +308,18 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
     };
 
     private void FillStatistics(boolean guessed) {
+        score += guessed ? 5 : -3;
+        hits ++;
+        if (hits > 5) {
+            GetAward();
+        }
+        if(score < 0) score=0;
+        ScoreInfo.setText("scored " + String.valueOf(score) + " points");
         //if (!guessed) {
             standBy = false;
         //}
+        ScoreInfo.setBackgroundColor(guessed ? Color.BLUE : Color.MAGENTA);
+
         if(!guessed)
         {
             AnteNative.setTextColor(Color.MAGENTA);
@@ -311,6 +364,14 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
 
         currentWord = CreateQuiz(wordsToBeDiscovered);
         //LastTranslation.invalidate();
+        //if(hits/50 ==0 )
+    }
+
+    private void GetAward() {
+        Intent myIntent = new Intent(this, ShareScoreActivity.class);
+        myIntent.putExtra("SCORE",score);
+        myIntent.putExtra("UserId", UserId);
+        startActivity(myIntent);
     }
 
     public void playBeep(int Sound) {
@@ -320,21 +381,27 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
                 m.release();
                 m = new MediaPlayer();
             }
-
-            AssetFileDescriptor descriptor = getAssets().openFd("good.m4a");
+            return;
+           /* AssetFileDescriptor descriptor = getAssets().openFd("good.m4a");
             m.setDataSource(descriptor.getFileDescriptor(), descriptor.getStartOffset(), descriptor.getLength());
             descriptor.close();
 
             m.prepare();
             m.setVolume(1f, 1f);
             m.setLooping(true);
-            m.start();
+            m.start();*/
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
     public Word CreateQuiz(List<Word> words) {
+        if(words.size() < 6)
+        {
+            if(!higherLevelDoesNotExist)
+            FilterRecords(difficulty++);
+        }
+        higherLevelDoesNotExist = false;
         currentWordIndex = rnd.nextInt(words.size() - 1);
         currentWord = words.get(currentWordIndex);
 
@@ -595,14 +662,19 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
 
     StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
 
-    int RSS_DOWNLOAD_REQUEST_CODE = 98;
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == 55) {
-            Log.e("Google API", String.valueOf(resultCode) + " + " +  data.getDataString());
-        }
-        if (requestCode == RSS_DOWNLOAD_REQUEST_CODE) {
+        super.onActivityResult(requestCode, resultCode, data);
+        switch (requestCode) {
+            case GET_FILES_REQUEST_CODE:
+                Log.e("Google API", String.valueOf(resultCode) + " + " +  data.getDataString());
+                break;
+            case RESOLVE_CONNECTION_REQUEST_CODE:
+                if (resultCode == RESULT_OK) {
+                    //mGoogleApiClient.connect();
+                }
+                break;
+            case RSS_DOWNLOAD_REQUEST_CODE:
                 switch (resultCode) {
                 case DownloadIntentService.INVALID_URL_CODE:
                     //handleInvalidURL();
@@ -629,7 +701,6 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
                     break;
             }
         }
-        super.onActivityResult(requestCode, resultCode, data);
     }
 
     private void ConsumeString(String result)
@@ -740,22 +811,20 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
 
     public void OpenDoc(View view)
     {
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addApi(Drive.API)
-                .addScope(Drive.SCOPE_FILE)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .build();
-        mGoogleApiClient.connect();
-
+        Log.e("Drive.FIle", "OpenDoc command");
+        DriveFile file = file = Drive.DriveApi.getFile(mGoogleApiClient, DriveId.decodeFromString("1OouR4nRNwA-7By8_MxhFREwo45CgBh9nU0jkAIEcDF8"));
+        file.open(mGoogleApiClient, DriveFile.MODE_READ_WRITE, null)
+                .setResultCallback(contentsOpenedCallback);
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Intent intent = getIntent();
+        UserId = intent.getExtras().getString("UserId");
         if(mDbHelper == null)
             mDbHelper = new WordReaderDbHelper(this);
-        EmptyTable(this, "");
+        //EmptyTable(this, "");
         setContentView(R.layout.activity_quiz);
 
         mVisible = true;
@@ -806,6 +875,7 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
 
         hide();
 
+        ScoreInfo = (TextView) findViewById( R.id.scoreInfo );
         Timer = (TextView) findViewById( R.id.timer );
         Timer.setOnClickListener(timerButtonListner);
         Settings = (ImageView) findViewById( R.id.settings);
@@ -850,7 +920,18 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
                 {
                     Timer.setText(new SimpleDateFormat("mm:ss:SS").format(new Date(millis)));
                 }
+
+                if( millis == 5 || millis == 10 || millis == 15 || millis == 10 || millis == 25)
+                {
+                   if(!standBy) {
+                       score--;
+                       ScoreInfo.setText("scored " + String.valueOf(score) + " points");
+                   }
+                }
             }
+
+
+
 
             public void onFinish() {
                 millis = 0;
@@ -874,6 +955,14 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
             WriteSQL(this, "Saved");
             FilterRecords(difficulty);
         }
+        Log.e("Drive.FIle", "OpenDoc mGoogleApiClient");
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addApi(Drive.API)
+                .addScope(Drive.SCOPE_FILE)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
     }
     // Request code to identify the response of a web request
     int HTTP_REQUEST_CODE = 98;
@@ -983,7 +1072,7 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
     @Override
     public void onStart() {
         super.onStart();
-
+        //mGoogleApiClient.connect();
     }
 
     @Override

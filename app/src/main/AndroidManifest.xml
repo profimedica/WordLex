@@ -52,8 +52,8 @@
             android:theme="@style/FullscreenTheme" />
         <activity
             android:name=".ItemListActivity"
-            android:screenOrientation="portrait"
             android:label="Statistics"
+            android:screenOrientation="portrait"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
             android:name=".ItemDetailActivity"
@@ -89,6 +89,11 @@
             android:name=".AboutActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_about"
+            android:theme="@style/FullscreenTheme" />
+        <activity
+            android:name=".ShareScoreActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_share_score"
             android:theme="@style/FullscreenTheme"></activity>
     </application>
 

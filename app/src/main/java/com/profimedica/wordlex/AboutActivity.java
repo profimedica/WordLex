@@ -1,12 +1,19 @@
 package com.profimedica.wordlex;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
+import android.content.res.AssetManager;
+import android.os.Environment;
+import android.provider.UserDictionary;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.MotionEvent;
 import android.view.View;
+
+import java.io.File;
+import java.io.FileOutputStream;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.

@@ -31,12 +31,22 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.auth.api.signin.GoogleSignInResult;
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.OptionalPendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.drive.Drive;
+import com.google.android.gms.drive.DriveApi;
+import com.google.android.gms.drive.DriveContents;
+import com.google.android.gms.drive.DriveFile;
+import com.google.android.gms.drive.DriveId;
+import com.google.android.gms.drive.MetadataChangeSet;
 
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -45,15 +55,67 @@ import java.util.List;
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
-public class LoginActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks {
+public class LoginActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+    private final static int RC_SIGN_IN_REQUEST_CODE = 22;
+    private final static int RESOLVE_CONNECTION_REQUEST_CODE = 5;
+
+    String FbId;
+    String FbName;
+    String FbEmail;
+    String FbGender;
+    String FbBirthday;
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        Log.e("Drive.FIle", "OpenDoc faild");
+        if (connectionResult.hasResolution()) {
+            try {
+                connectionResult.startResolutionForResult(this, RESOLVE_CONNECTION_REQUEST_CODE);
+            } catch (IntentSender.SendIntentException e) {
+                Log.e("Drive.FIle", e.getMessage());
+                // Unable to resolve, message user appropriately
+            }
+        } else {
+            GooglePlayServicesUtil.getErrorDialog(connectionResult.getErrorCode(), this, 0).show();
+            Log.e("Drive.FIle", "OpenDoc "+String.valueOf(connectionResult.getErrorCode()));
+        }
+    }
+
     LoginButton loginButton;
     CallbackManager callbackManager;
     GoogleApiClient mGoogleApiClient;
 
+    ResultCallback<DriveApi.DriveContentsResult> contentsOpenedCallback =
+            new ResultCallback<DriveApi.DriveContentsResult>() {
+                @Override
+                public void onResult(DriveApi.DriveContentsResult result) {
+                    if (!result.getStatus().isSuccess()) {
+                        // display an error saying file can't be opened
+                        return;
+                    }
+                    // DriveContents object contains pointers
+                    // to the actual byte stream
+                    Log.e("Drive.FIle", "OpenDoc result successfuly");
+                    DriveContents contents = result.getDriveContents();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(contents.getInputStream()));
+                    StringBuilder builder = new StringBuilder();
+                    String line;
+                    try {
+                        while ((line = reader.readLine()) != null) {
+                            builder.append(line);
+                        }
+                    }catch(Exception e){}
+                    String contentsAsString = builder.toString();
+                    Log.e("Drive.FIle", contentsAsString);
+
+                }
+            };
+
+
     @Override
     public void onConnected(Bundle connectionHint) {
         int i =0;
-        Log.e(" cd ", "Connected with GoogleApiClient");
+        Log.e("Login: ", "Connected with GoogleApiClient");
         /*IntentSender intentSender = Drive.DriveApi
                 .newOpenFileActivityBuilder()
                 .setMimeType(new String[] { "text/plain", "text/html" })
@@ -64,7 +126,9 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
         } catch (IntentSender.SendIntentException e) {
             Log.e(" cd ", "Unable to send intent drive", e);
         }*/
-        updateUI(true);
+
+        mGoogleApiClient.connect();
+        //updateUI(true);
     }
 
     @Override
@@ -147,23 +211,55 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
         }
     };
 
-    int RC_SIGN_IN = 22;
     private void signIn() {
-        Log.e("Google signIn", "signIn method");
-        Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
-        startActivityForResult(signInIntent, RC_SIGN_IN);
+        if (mGoogleApiClient.hasConnectedApi(Drive.API)) {
+            Log.e("Google signIn", "Get file");
+            MetadataChangeSet changeSet = new MetadataChangeSet.Builder()
+                    .setTitle("New folder").build();
+            Drive.DriveApi.getRootFolder(mGoogleApiClient).createFolder(
+                    mGoogleApiClient, changeSet).setResultCallback(null);
+
+            DriveFile file = file = Drive.DriveApi.getFile(mGoogleApiClient, DriveId.zzcQ("1OouR4nRNwA-7By8_MxhFREwo45CgBh9nU0jkAIEcDF8"));
+            file.open(mGoogleApiClient, DriveFile.MODE_READ_WRITE, null)
+                    .setResultCallback(contentsOpenedCallback);
+        }
+        else if(mGoogleApiClient.hasConnectedApi(Auth.GOOGLE_SIGN_IN_API)) {
+            Log.e("Google signIn", "signIn method");
+            Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
+            startActivityForResult(signInIntent, RC_SIGN_IN_REQUEST_CODE);
+        }
+        else
+        {
+            Log.e("Google signIn", "Connect again");
+            mGoogleApiClient.connect();
+            /*DriveFile file = file = Drive.DriveApi.getFile(mGoogleApiClient, DriveId.zzcQ("1OouR4nRNwA-7By8_MxhFREwo45CgBh9nU0jkAIEcDF8"));
+            file.open(mGoogleApiClient, DriveFile.MODE_READ_WRITE, null)
+                    .setResultCallback(contentsOpenedCallback);*/
+        }
     }
 
     public GoogleApiClient.OnConnectionFailedListener onConnectionFailedListener = new GoogleApiClient.OnConnectionFailedListener() {
         @Override
         public void onConnectionFailed(ConnectionResult connectionResult) {
-            Log.e("Google sign in", "Error: "+ connectionResult.getErrorMessage());
-        }
+            Log.e("Google sign in or drive", "Error: "+ connectionResult.getErrorMessage());
+            Log.e("Drive.FIle", "OpenDoc faild");
+            if (connectionResult.hasResolution()) {
+                try {
+                   connectionResult.startResolutionForResult(LoginActivity.this, RESOLVE_CONNECTION_REQUEST_CODE);
+                } catch (IntentSender.SendIntentException e) {
+                    Log.e("Drive.FIle", e.getMessage());
+                    // Unable to resolve, message user appropriately
+                }
+            } else {
+                GooglePlayServicesUtil.getErrorDialog(connectionResult.getErrorCode(), LoginActivity.this, 0).show();
+                Log.e("Drive.FIle", "OpenDoc "+String.valueOf(connectionResult.getErrorCode()));
+            }}
     };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         // initialize FbSDK before layout
         FacebookSdk.sdkInitialize(getApplicationContext());
         setContentView(R.layout.activity_login);
@@ -200,18 +296,18 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
             @Override
             public void onSuccess(LoginResult loginResult) {
                 infoTextView.setText("FB: Please wait...");
+                Log.e("LoginActivity", loginResult.toString());
+                FbId = loginResult.getAccessToken().getUserId();
 
-                updateUI(true);
                 /*
                 if (AccessToken.getCurrentAccessToken() == null) {
                     waitForFacebookSdk();
                 } else {
                     DoFB();
                 }
-
-                Intent intent = new Intent(LoginActivity.this, QuizActivity.class);
-                startActivity(intent);
                 */
+                updateUI(true);
+
             }
 
             @Override
@@ -228,6 +324,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
         // profile. ID and basic profile are included in DEFAULT_SIGN_IN.
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 //.requestIdToken(getString(R.string.server_client_id))
+                .requestScopes(Drive.SCOPE_FILE)
                 .requestEmail()
                 .build();
         // Build a GoogleApiClient with access to the Google Sign-In API and the
@@ -236,9 +333,10 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
                 .enableAutoManage(this /* FragmentActivity */, onConnectionFailedListener)
                 //.addApi(Drive.API)
                 //.addScope(Drive.SCOPE_FILE)
+                .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+                .addApi(Drive.API)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(onConnectionFailedListener)
-                .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
                 .build();
 
 
@@ -264,10 +362,12 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
     List<Word> wordsToBeDiscovered = new ArrayList<>();
 
     private void DoFB() {
+        Bundle parameters = new Bundle();
+        parameters.putString("fields", "id,name,email,gender, birthday");
         new GraphRequest(
                 AccessToken.getCurrentAccessToken(),
                 "/me/feed",
-                null,
+                parameters,
                 HttpMethod.GET,
                 new GraphRequest.Callback() {
                     public void onCompleted(GraphResponse response) {
@@ -276,6 +376,8 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
                     }
                 }
         ).executeAsync();
+
+
     }
 
     private void waitForFacebookSdk() {
@@ -309,19 +411,21 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        //Bundle bundle = data.getExtras();
-        //Log.e("Google Sign in", "bundle:" + bundle.getString(AccountManager.KEY_ACCOUNT_NAME) +" "+ String.valueOf(bundle.getString(AccountManager.KEY_BOOLEAN_RESULT)));
-        // Result returned from launching the Intent from GoogleSignInApi.getSignInIntent(...);
-        if (requestCode == RC_SIGN_IN) {
-            GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
-            handleSignInResult(result);
-        }
-        else if (requestCode == 55) {
-            Log.e("Google API", String.valueOf(resultCode) + " + " +  data.getDataString());
-        }
-        else
-        {
-            callbackManager.onActivityResult(requestCode, resultCode, data);
+        switch (requestCode) {
+            case RESOLVE_CONNECTION_REQUEST_CODE:
+                if (resultCode == RESULT_OK) {
+                    mGoogleApiClient.connect();
+                }
+                break;
+            case RC_SIGN_IN_REQUEST_CODE:
+                GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
+                handleSignInResult(result);
+                break;
+            case 55:
+                Log.e("Google API", String.valueOf(resultCode) + " + " +  data.getDataString());
+                break;
+            default:
+                callbackManager.onActivityResult(requestCode, resultCode, data);
         }
     }
 
@@ -345,6 +449,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
     {
         if(update) {
             Intent intent = new Intent(LoginActivity.this, QuizActivity.class);
+            intent.putExtra("UserId", FbId);
             startActivity(intent);
         }
     }

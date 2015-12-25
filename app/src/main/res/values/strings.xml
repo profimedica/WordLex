@@ -82,4 +82,6 @@
     <string name="pref_title_vibrate">Vibrate</string>
 
     <string name="title_activity_about">About WordLex</string>
+
+    <string name="title_activity_share_score">ShareScoreActivity</string>
 </resources>
