@@ -271,7 +271,7 @@ public class ItemListActivity extends AppCompatActivity {
     private void setupRecyclerView(@NonNull RecyclerView recyclerView) {
         this.recyclerView = recyclerView;
         words = ReadSQL(5);
-        Collections.sort(words);
+        //Collections.sort(words);
         Collections.reverse(words);
         recyclerView.setAdapter(new SimpleItemRecyclerViewAdapter(words));
     }

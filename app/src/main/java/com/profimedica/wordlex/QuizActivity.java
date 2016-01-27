@@ -10,10 +10,17 @@ import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
 import android.media.MediaPlayer;
+import android.os.AsyncTask;
 import android.os.CountDownTimer;
+import android.os.Message;
 import android.os.StrictMode;
+import android.provider.MediaStore;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -26,6 +33,10 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.facebook.share.model.SharePhoto;
+import com.facebook.share.model.SharePhotoContent;
+import com.facebook.share.widget.ShareDialog;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -37,9 +48,17 @@ import com.google.android.gms.drive.DriveFile;
 import com.google.android.gms.drive.DriveId;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -56,12 +75,13 @@ import android.speech.tts.TextToSpeech;
  */
 public class QuizActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
+    String dictionaryPath = "";
     static final int RESOLVE_CONNECTION_REQUEST_CODE = 42;
     static final int RSS_DOWNLOAD_REQUEST_CODE = 98;
     static final int GET_FILES_REQUEST_CODE = 55;
 
     int hits = 0;
-    String UserId = "1102342866462716";
+    String FbUserId = "1102342866462716";
     private GoogleApiClient mGoogleApiClient;
 
     @Override
@@ -310,7 +330,7 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
     private void FillStatistics(boolean guessed) {
         score += guessed ? 5 : -3;
         hits ++;
-        if (hits > 5) {
+        if (hits > 50) {
             GetAward();
         }
         if(score < 0) score=0;
@@ -368,10 +388,15 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
     }
 
     private void GetAward() {
+        //int id = getResources().getIdentifier("yourpackagename:drawable/" + , null, null);
+        Settings.setImageResource(R.drawable.settings_orange);
+        new CreateImage().execute(FbUserId, String.valueOf(score));
+        return;
+        /*
         Intent myIntent = new Intent(this, ShareScoreActivity.class);
         myIntent.putExtra("SCORE",score);
-        myIntent.putExtra("UserId", UserId);
-        startActivity(myIntent);
+        myIntent.putExtra("FbUserId", FbUserId);
+        startActivity(myIntent);*/
     }
 
     public void playBeep(int Sound) {
@@ -692,7 +717,7 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
 
                     String result = data.getStringExtra("url");
 
-                    ConsumeString(result);
+                    wordsToBeDiscovered = Utils.ConsumeString(result);
                     AnteNative.setText("DataSource");
                     AnteForeign.setText("WEB");
                     WriteSQL(this, "Saved");
@@ -703,23 +728,12 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
         }
     }
 
-    private void ConsumeString(String result)
-    {
-        String[] inputLines = result.split("\\r?\\n");
-        for(int i=1; i<inputLines.length; i++){
-            String[] splitedLine = inputLines[i].split("\\ = ");
-            if(splitedLine.length > 1) {
-                Word word = new Word(null, splitedLine[0], splitedLine[1], 0, 0, 0, 0, Long.valueOf(0), Long.valueOf(0), "DeEn");
-                word.Unsaved = true;
-                wordsToBeDiscovered.add(word);
-            }
-        }
-    }
-
     protected void onDestroy() {
 
         // WriteCSV(this, words, "Saved");
         super.onDestroy();
+        WriteSQL(QuizActivity.this, "Saved");
+        UpdateFile();
     }
 
 
@@ -798,6 +812,7 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
 
     public void onPause(){
         WriteSQL(QuizActivity.this, "Saved");
+        UpdateFile();
         if(TTSnative !=null){
             TTSnative.stop();
             TTSnative.shutdown();
@@ -809,6 +824,18 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
         super.onPause();
     }
 
+    private void UpdateFile() {
+        FilterRecords(0);
+        FileOutputStream outputStream;
+        try {
+            outputStream = openFileOutput(dictionaryPath, Context.MODE_PRIVATE);
+            outputStream.write(Utils.PrepareString(wordsToBeDiscovered).getBytes());
+            outputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public void OpenDoc(View view)
     {
         Log.e("Drive.FIle", "OpenDoc command");
@@ -817,11 +844,209 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
                 .setResultCallback(contentsOpenedCallback);
     }
 
+    public static Bitmap convertToMutable(final Context context, final Bitmap imgIn) {
+        final int width = imgIn.getWidth(), height = imgIn.getHeight();
+        final Bitmap.Config type = imgIn.getConfig();
+        File outputFile = null;
+        final File outputDir = context.getCacheDir();
+        try {
+            outputFile = File.createTempFile(Long.toString(System.currentTimeMillis()), null, outputDir);
+            outputFile.deleteOnExit();
+            final RandomAccessFile randomAccessFile = new RandomAccessFile(outputFile, "rw");
+            final FileChannel channel = randomAccessFile.getChannel();
+            final MappedByteBuffer map = channel.map(FileChannel.MapMode.READ_WRITE, 0, imgIn.getRowBytes() * height);
+            imgIn.copyPixelsToBuffer(map);
+            imgIn.recycle();
+            final Bitmap result = Bitmap.createBitmap(width, height, type);
+            map.position(0);
+            result.copyPixelsFromBuffer(map);
+            channel.close();
+            randomAccessFile.close();
+            outputFile.delete();
+            return result;
+        } catch (final Exception e) {
+        } finally {
+            if (outputFile != null)
+                outputFile.delete();
+        }
+        return null;
+    }
+
+    private List<Bitmap> GetImagesArray(int score) {
+        List<Bitmap> images = new ArrayList<Bitmap>();
+        while(score > 0) {
+            int rest  = score % 10;
+            score = (int)(score / 10);
+            switch(rest) {
+                case 0:
+                    Bitmap letterImage0 =BitmapFactory.decodeResource(getResources(),
+                            R.drawable.number0);
+                    images.add(letterImage0);
+                    break;
+                case 1:
+                    Bitmap letterImage1 =BitmapFactory.decodeResource(getResources(),
+                            R.drawable.number1);
+                    images.add(letterImage1);
+                    break;
+                case 2:
+                    Bitmap letterImage2 =BitmapFactory.decodeResource(getResources(),
+                            R.drawable.number2);
+                    images.add(letterImage2);
+                    break;
+                case 3:
+                    Bitmap letterImage3 =BitmapFactory.decodeResource(getResources(),
+                            R.drawable.number3);
+                    images.add(letterImage3);
+                    break;
+                case 4:
+                    Bitmap letterImage4 =BitmapFactory.decodeResource(getResources(),
+                            R.drawable.number4);
+                    images.add(letterImage4);
+                    break;
+                case 5:
+                    Bitmap letterImage5 =BitmapFactory.decodeResource(getResources(),
+                            R.drawable.number5);
+                    images.add(letterImage5);
+                    break;
+                case 6:
+                    Bitmap letterImage6 =BitmapFactory.decodeResource(getResources(),
+                            R.drawable.number6);
+                    images.add(letterImage6);
+                    break;
+                case 7:
+                    Bitmap letterImage7 =BitmapFactory.decodeResource(getResources(),
+                            R.drawable.number7);
+                    images.add(letterImage7);
+                    break;
+                case 8:
+                    Bitmap letterImage8 =BitmapFactory.decodeResource(getResources(),
+                            R.drawable.number8);
+                    images.add(letterImage8);
+                    break;
+                case 9:
+                    Bitmap letterImage9 =BitmapFactory.decodeResource(getResources(),
+                            R.drawable.number9);
+                    images.add(letterImage9);
+                    break;
+            }
+        }
+        return images;
+    }
+
+
+    private class CreateImage extends AsyncTask<String, Void, Bitmap> {
+
+        @Override
+        protected Bitmap doInBackground(String... params) {
+            String FbUserId = params[0];
+            int score = Integer.valueOf(params[1]);
+            BitmapFactory.Options op = new BitmapFactory.Options();
+            op.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            Bitmap image =BitmapFactory.decodeResource(getResources(),
+                    R.drawable.score, op);
+            if (!image.isMutable()) {
+                image = convertToMutable(QuizActivity.this, image);
+            }
+            //image =image.copy(Bitmap.Config.ARGB_8888, true);
+            //context = getApplicationContext();
+            List<Bitmap> letters = GetImagesArray(score);
+            String regenerated = "";
+
+            Canvas mComboImage = new Canvas(image);
+            int xPosition = 2000;
+            int yPosition = 600;
+            Bitmap processedImage = image;
+
+            // Add profilImage
+            Bitmap profilImage = getPhotoFacebook(FbUserId);
+            //SaveImg(profilImage, score);
+            if (!profilImage.isMutable()) {
+                profilImage = convertToMutable(QuizActivity.this, profilImage);
+            }
+            profilImage = Bitmap.createScaledBitmap(profilImage, 465, 450, true);
+            mComboImage.drawBitmap(profilImage.copy(Bitmap.Config.ARGB_8888, true), 1775, 85, null);
+            BitmapDrawable profilImageDrawable = new BitmapDrawable(profilImage);
+            processedImage = ((BitmapDrawable) profilImageDrawable).getBitmap();
+
+            // Add score
+            for (Bitmap letterImage : letters) {
+                mComboImage.drawBitmap(letterImage.copy(Bitmap.Config.ARGB_8888, true), xPosition, yPosition, null);
+                xPosition -= 280;
+                BitmapDrawable mBitmapDrawable = new BitmapDrawable(image);
+                processedImage = ((BitmapDrawable) mBitmapDrawable).getBitmap();
+            }
+            //SaveImg(processedImage, score);
+            return processedImage;
+        }
+
+        @Override
+        protected void onPostExecute(Bitmap result) {
+            Settings.setImageResource(R.drawable.settings_white);
+            SharePhoto photo = new SharePhoto.Builder()
+                    .setBitmap(result)
+                    .setCaption("Learn german with WordLex: https://play.google.com/store/apps/details?id=com.profimedica.wordlex")
+                    .build();
+            List<String> peoples = new ArrayList<>();
+            peoples.add(FbUserId);
+            SharePhotoContent content = new SharePhotoContent.Builder()
+                    .setPeopleIds(peoples)
+                    .setRef("https://play.google.com/store/apps/details?id=com.profimedica.wordlex")
+                    .addPhoto(photo)
+                            //.setContentUrl(Uri.parse("https://play.google.com/store/apps/details?id=com.profimedica.wordlex"))
+                    .build();
+            ShareDialog shareDialog = new ShareDialog(QuizActivity.this);
+            //if (ShareDialog.canShow(SharePhotoContent.class))
+            {
+                shareDialog.show(content);
+            }
+        }
+
+        @Override
+        protected void onPreExecute() {}
+
+        @Override
+        protected void onProgressUpdate(Void... values) {}
+    }
+
+    public Bitmap getPhotoFacebook(final String id) {
+
+        Bitmap bitmap=null;
+        final String nomimg = "https://graph.facebook.com/"+id+"/picture?type=large";
+        URL imageURL = null;
+
+        try {
+            imageURL = new URL(nomimg);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            HttpURLConnection connection = (HttpURLConnection) imageURL.openConnection();
+            connection.setDoInput(true);
+            connection.setInstanceFollowRedirects( true );
+            connection.connect();
+            InputStream inputStream = connection.getInputStream();
+            //img_value.openConnection().setInstanceFollowRedirects(true).getInputStream()
+            bitmap = BitmapFactory.decodeStream(inputStream);
+
+        } catch (IOException e) {
+
+            e.printStackTrace();
+        }
+        return bitmap;
+
+    }
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
-        UserId = intent.getExtras().getString("UserId");
+        FbUserId = intent.getExtras().getString("FbUserId");
+        dictionaryPath = intent.getExtras().getString("LexPath");
+        if(intent.getExtras().getParcelableArrayList("Lex") != null) {
+            wordsToBeDiscovered = intent.getExtras().getParcelableArrayList("Lex");
+        }
         if(mDbHelper == null)
             mDbHelper = new WordReaderDbHelper(this);
         //EmptyTable(this, "");
@@ -925,6 +1150,10 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
                 {
                    if(!standBy) {
                        score--;
+                       if(score < 0)
+                       {
+                           score = 0;
+                       }
                        ScoreInfo.setText("scored " + String.valueOf(score) + " points");
                    }
                 }
@@ -940,7 +1169,7 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
             }
         };
 
-        if (wordsToBeDiscovered.size() == 0 && getLastInsertId(db, "") < 0) {
+        /*if (wordsToBeDiscovered.size() == 0 && getLastInsertId(db, "") < 0) {
             if (false) {
                 ReadCSV(this, "DeEn");
 
@@ -952,9 +1181,10 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
 
         }
         else {
+        */
             WriteSQL(this, "Saved");
             FilterRecords(difficulty);
-        }
+        //}
         Log.e("Drive.FIle", "OpenDoc mGoogleApiClient");
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -985,7 +1215,7 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
                 InputStream csvStream = assetManager.open(fileName + ".csv");
                 // InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
                 String input = convertStreamToString(csvStream);
-                ConsumeString(input);
+                wordsToBeDiscovered = Utils.ConsumeString(input);
                 AnteNative.setText("DataSource");
                 AnteForeign.setText("Basic");
             } else {
@@ -993,7 +1223,7 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
                 InputStream csvStream = assetManager.open(fileName + ".csv");
                 // InputStreamReader csvStreamReader = new InputStreamReader(csvStream);
                 String input = convertStreamToString(csvStream);
-                ConsumeString(input);
+                wordsToBeDiscovered = Utils.ConsumeString(input);
             }
         } catch (IOException e) {
             //Log.e(">>>>>", currentLine );

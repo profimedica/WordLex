@@ -8,7 +8,7 @@ android {
         release {
             keyAlias 'wordlex'
             keyPassword 'Start1312!'
-            storeFile file('C:/WordLex/keys/wordlex.android')
+            storeFile file('C:/Save/WordLex/keys/wordlex.android')
             storePassword 'Start1312!'
         }
     }
@@ -52,4 +52,7 @@ dependencies {
     compile 'com.facebook.android:facebook-android-sdk:4.7.0'
     compile 'com.android.support:support-v4:23.1.1'
     compile 'com.android.support:recyclerview-v7:23.1.1'
+    compile 'com.dropbox.core:dropbox-core-sdk:2.0-beta-4'
+    compile files('src/main/libs/dropbox-android-sdk-1.6.3.jar')
+    compile files('src/main/libs/json_simple-1.1.jar')
 }

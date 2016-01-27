@@ -59,7 +59,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
     private final static int RC_SIGN_IN_REQUEST_CODE = 22;
     private final static int RESOLVE_CONNECTION_REQUEST_CODE = 5;
 
-    String FbId;
+    String FbUserId;
     String FbName;
     String FbEmail;
     String FbGender;
@@ -297,7 +297,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
             public void onSuccess(LoginResult loginResult) {
                 infoTextView.setText("FB: Please wait...");
                 Log.e("LoginActivity", loginResult.toString());
-                FbId = loginResult.getAccessToken().getUserId();
+                FbUserId = loginResult.getAccessToken().getUserId();
 
                 /*
                 if (AccessToken.getCurrentAccessToken() == null) {
@@ -448,8 +448,9 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
     private void updateUI(boolean update)
     {
         if(update) {
-            Intent intent = new Intent(LoginActivity.this, QuizActivity.class);
-            intent.putExtra("UserId", FbId);
+            //Intent intent = new Intent(LoginActivity.this, QuizActivity.class);
+            Intent intent = new Intent(LoginActivity.this, SelectLex.class);
+            intent.putExtra("FbUserId", FbUserId);
             startActivity(intent);
         }
     }

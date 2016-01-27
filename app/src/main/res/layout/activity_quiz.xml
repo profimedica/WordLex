@@ -273,6 +273,7 @@
             android:layout_height="wrap_content"
             android:textSize="26dp"
             android:text="Loading..." />
+
         <Button
             android:id="@+id/button3"
             android:padding="13dp"

@@ -69,6 +69,19 @@
             android:label="@string/title_friend_list"
             android:theme="@style/AppTheme.NoActionBar" />
         <activity
+            android:name="com.dropbox.client2.android.AuthActivity"
+            android:configChanges="orientation|keyboard"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <data android:scheme="db-35gyybmvlysajru" />
+
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.BROWSABLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <activity
             android:name=".FriendDetailActivity"
             android:label="@string/title_friend_detail"
             android:parentActivityName=".FriendListActivity"
@@ -94,6 +107,11 @@
             android:name=".ShareScoreActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:label="@string/title_activity_share_score"
+            android:theme="@style/FullscreenTheme" />
+        <activity
+            android:name=".SelectLex"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_select_lex"
             android:theme="@style/FullscreenTheme"></activity>
     </application>
 

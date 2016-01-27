@@ -54,7 +54,7 @@ public class ShareScoreActivity extends AppCompatActivity {
      */
     private static final boolean AUTO_HIDE = true;
     int score = 0;
-    String UserId;
+    String FbUserId;
 
     /**
      * If {@link #AUTO_HIDE} is set, the number of milliseconds to wait after
@@ -125,7 +125,7 @@ public class ShareScoreActivity extends AppCompatActivity {
 
         @Override
         protected Bitmap doInBackground(String... params) {
-                String UserId = params[0];
+                String FbUserId = params[0];
                 int score = Integer.valueOf(params[1]);
                 BitmapFactory.Options op = new BitmapFactory.Options();
                 op.inPreferredConfig = Bitmap.Config.ARGB_8888;
@@ -145,7 +145,7 @@ public class ShareScoreActivity extends AppCompatActivity {
                 Bitmap processedImage = image;
 
                 // Add profilImage
-                Bitmap profilImage = getPhotoFacebook(UserId);
+                Bitmap profilImage = getPhotoFacebook(FbUserId);
                 //SaveImg(profilImage, score);
                 if (!profilImage.isMutable()) {
                     profilImage = convertToMutable(ShareScoreActivity.this, profilImage);
@@ -168,8 +168,23 @@ public class ShareScoreActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(Bitmap result) {
-            // might want to change "executed" for the returned string passed
-            // into onPostExecute() but that is upto you
+            SharePhoto photo = new SharePhoto.Builder()
+                    .setBitmap(result)
+                    .setCaption("Learn german with WordLex: https://play.google.com/store/apps/details?id=com.profimedica.wordlex")
+                    .build();
+            List<String> peoples = new ArrayList<>();
+            peoples.add(FbUserId);
+            SharePhotoContent content = new SharePhotoContent.Builder()
+                    .setPeopleIds(peoples)
+                    .setRef("https://play.google.com/store/apps/details?id=com.profimedica.wordlex")
+                    .addPhoto(photo)
+                    //.setContentUrl(Uri.parse("https://play.google.com/store/apps/details?id=com.profimedica.wordlex"))
+                    .build();
+            ShareDialog shareDialog = new ShareDialog(ShareScoreActivity.this);
+            //if (ShareDialog.canShow(SharePhotoContent.class))
+            {
+                shareDialog.show(content);
+            }
         }
 
         @Override
@@ -191,24 +206,9 @@ public class ShareScoreActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
         score = intent.getExtras().getInt("SCORE");
-        UserId = intent.getExtras().getString("UserId");
-        new CreateImage().execute(UserId, String.valueOf(score));
-        /*mContentView.setText(regenerated);
-
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-        SharePhoto photo = new SharePhoto.Builder()
-                .setBitmap(image)
-                .build();
-        SharePhotoContent content = new SharePhotoContent.Builder()
-                .addPhoto(photo)
-                .setContentUrl(Uri.parse("https://play.google.com/store/apps/details?id=com.profimedica.wordlex"))
-                .build();
-        ShareDialog shareDialog = new ShareDialog(this);
-        if (ShareDialog.canShow(SharePhotoContent.class)) {
-            shareDialog.show(content);
-        }
-        */
+        FbUserId = intent.getExtras().getString("FbUserId");
+        new CreateImage().execute(FbUserId, String.valueOf(score));
+        //mContentView.setText(regenerated);
         // Set up the user interaction to manually show or hide the system UI.
         mContentView.setOnClickListener(new View.OnClickListener() {
             @Override
