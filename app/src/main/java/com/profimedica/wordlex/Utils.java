@@ -44,7 +44,11 @@ public class Utils {
             if(splitedLine.length > 1) {
                 Word word = null;
                 if(splitedLine.length > 8) {
-                    word = new Word(Long.valueOf(splitedLine[0]), splitedLine[1], splitedLine[2], Integer.valueOf(splitedLine[3]), Integer.valueOf(splitedLine[4]), Integer.valueOf(splitedLine[5]), Integer.valueOf(splitedLine[6]), Long.valueOf(splitedLine[7]), Long.valueOf(splitedLine[8]), "DeEn");
+                    word = new Word(Long.valueOf(splitedLine[0]), splitedLine[1], splitedLine[2], Integer.valueOf(splitedLine[3]), Integer.valueOf(splitedLine[4]), Integer.valueOf(splitedLine[5]), Integer.valueOf(splitedLine[6]), Long.valueOf(splitedLine[7]), Long.valueOf(splitedLine[8]), splitedLine[9]);
+                    if (word.Id > 1000 || word.Id <1)
+                    {
+                        word.Id = Long.valueOf(-1);
+                    }
                 }
                 else
                 {
@@ -73,7 +77,7 @@ public class Utils {
                             String.valueOf(word.FGood) + delimiter +
                             String.valueOf(word.TimeSpend) + delimiter +
                             String.valueOf(word.FSpend) + delimiter +
-                            word.Dictionary + delimiter
+                            word.Dictionary + "\n"
             );
         }
         return sb.toString();

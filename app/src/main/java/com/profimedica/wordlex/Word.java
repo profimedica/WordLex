@@ -32,7 +32,7 @@ public class Word implements Comparable<Word>, Parcelable {
             this.FSpend = source.readLong();
         }catch(Exception e){}
         this.Dictionary = source.readString();
-        Unsaved = false;
+        Unsaved = source.readByte() != 0;
     }
 
     public Word(Long Id, String Native, String Foreign, Integer Bad, Integer Good, Integer FBad, Integer FGood, Long TimeSpend, Long FSpend, String Dictionary){
@@ -83,7 +83,7 @@ public class Word implements Comparable<Word>, Parcelable {
 
         }
         dest.writeString(this.Dictionary);
-        Unsaved = false;
+        dest.writeByte((byte) (this.Unsaved ? 1 : 0));
     }
 
     public static final Creator<Word> CREATOR = new Creator<Word>() {

@@ -5,16 +5,6 @@
     android:background="#0099cc"
     tools:context="com.profimedica.wordlex.QuizActivity">
     <TextView
-        android:id="@+id/OpenFile"
-        android:textColor="#000"
-        android:layout_marginTop="60dp"
-        android:layout_marginLeft="5dp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:onClick="OpenDoc"
-        android:textStyle="italic"
-        android:text="Open" />
-    <TextView
         android:layout_width="match_parent"
         android:background="#000"
         android:foreground="#fff"
@@ -59,6 +49,13 @@
             android:text="0"
             android:textAppearance="?android:attr/textAppearanceLarge" />
     </LinearLayout>
+    <ImageView android:src="@drawable/speacker_muted"
+        android:id="@+id/SpeackerSwitch"
+        android:layout_marginTop="120dp"
+        android:layout_marginLeft="30px"
+        android:layout_gravity="left"
+        android:layout_width="40px"
+        android:layout_height="50px" />
     <TextView
         android:id="@+id/fullscreen_content"
         android:layout_marginTop="120dp"
@@ -124,12 +121,12 @@
         android:layout_marginTop="70dp"
         android:gravity="left"
         android:orientation="horizontal">
-        <ImageView android:src="@drawable/arrow_down_black"
+        <ImageView android:src="@drawable/arrow_down_gray"
             android:id="@+id/difficulty_lower"
             android:layout_gravity="left|bottom"
             android:gravity="left|bottom"
             android:layout_width="30dp"
-            android:layout_height="20dp" />
+            android:layout_height="10dp" />
         <TextView
             android:id="@+id/level"
             android:textColor="#000"
@@ -139,12 +136,12 @@
             android:layout_height="wrap_content"
             android:text=" 0 "
             android:textAppearance="?android:attr/textAppearanceLarge" />
-        <ImageView android:src="@drawable/arrow_up_black"
+        <ImageView android:src="@drawable/arrow_up_gray"
             android:id="@+id/difficulty_higher"
             android:layout_gravity="right|top"
             android:gravity="right|top"
             android:layout_width="30dp"
-            android:layout_height="20dp" />
+            android:layout_height="10dp" />
     </LinearLayout>
     <LinearLayout
         android:layout_width="match_parent"

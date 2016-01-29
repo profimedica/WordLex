@@ -3,9 +3,11 @@ package com.profimedica.wordlex;
 import android.annotation.SuppressLint;
 import android.app.Dialog;
 import android.app.PendingIntent;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.content.SharedPreferences;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.database.Cursor;
@@ -34,6 +36,11 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.dropbox.client2.DropboxAPI;
+import com.dropbox.client2.android.AndroidAuthSession;
+import com.dropbox.client2.session.AccessTokenPair;
+import com.dropbox.client2.session.AppKeyPair;
+import com.dropbox.client2.session.Session;
 import com.facebook.share.model.SharePhoto;
 import com.facebook.share.model.SharePhotoContent;
 import com.facebook.share.widget.ShareDialog;
@@ -49,6 +56,7 @@ import com.google.android.gms.drive.DriveId;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -75,6 +83,13 @@ import android.speech.tts.TextToSpeech;
  */
 public class QuizActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
+    private final static String DROPBOX_FILE_DIR = "WordLex";
+    private final static String ACCOUNT_PREFS_NAME = "dropbox_prefs";
+    private final static String ACCESS_KEY_NAME = "35gyybmvlysajru";
+    private final static String ACCESS_SECRET_NAME = "vc49hinri58o6q4";
+    private final static Session.AccessType ACCESS_TYPE = Session.AccessType.DROPBOX;
+    DropboxAPI dropboxApi;
+    ProgressDialog progress;
     String dictionaryPath = "";
     static final int RESOLVE_CONNECTION_REQUEST_CODE = 42;
     static final int RSS_DOWNLOAD_REQUEST_CODE = 98;
@@ -150,6 +165,8 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
     TextView ScoreInfo;
     int score=0;
     ImageView Settings;
+    ImageView SpeackerSwitch;
+    Boolean SpeackerSwitchMuted = true;
     CountDownTimer countDownTimer;
     long millis = 0;
     boolean displayCumulatedConsumeForCurentWord;
@@ -239,6 +256,14 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
         @Override
         public void onClick(View v) {
             FillStatistics(goodButtonNumber == 4);
+        }
+    };
+    protected View.OnClickListener SpeackerSwitchListner = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            // Go to settings screen
+            SpeackerSwitchMuted = !SpeackerSwitchMuted;
+            Settings.setImageResource((SpeackerSwitchMuted? R.drawable.speacker_muted : R.drawable.speacker));
         }
     };
     protected View.OnClickListener settingsButtonListner = new View.OnClickListener() {
@@ -431,12 +456,12 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
         currentWord = words.get(currentWordIndex);
 
         //Toast.makeText(getApplicationContext(), currentWord.Native, Toast.LENGTH_SHORT).show();
-        if(nativeFirst)
-        {
-            TTSnative.speak(currentWord.Native, TextToSpeech.QUEUE_FLUSH, null);
-        }
-        else {
-            TTSforeign.speak(currentWord.Foreign, TextToSpeech.QUEUE_FLUSH, null);
+        if(!SpeackerSwitchMuted) {
+            if (nativeFirst) {
+                TTSnative.speak(currentWord.Native, TextToSpeech.QUEUE_FLUSH, null);
+            } else {
+                TTSforeign.speak(currentWord.Foreign, TextToSpeech.QUEUE_FLUSH, null);
+            }
         }
 
         goodButtonNumber = rnd.nextInt(5);
@@ -468,7 +493,7 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
         millis = 0;
         countDownTimer.start();
 
-        if(standBy) {
+        if(standBy && !SpeackerSwitchMuted) {
             AnteNative.setText("MODE");
             AnteForeign.setText("StandBy");
             if (nativeFirst) {
@@ -509,7 +534,7 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
 
     private void WriteWordInDatabase(SQLiteDatabase db, Word word) {
         // Create a new map of values, where column names are the keys
-        if (word.Id == null) {
+        if (word.Id == null || word.Id == -1 ) {
             String SQL = "INSERT INTO " + WordReaderContract.WordEntry.TABLE_NAME +
                     " (" +
                     WordReaderContract.WordEntry.COLUMN_NAME_NATIVE + " , " +
@@ -560,7 +585,7 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
 
         for (Iterator<Word> i = wordsToBeDiscovered.iterator(); i.hasNext(); ) {
             Word word = i.next();
-            if (word.Unsaved) {
+            if (word.Unsaved || word.Id < 1) {
                 WriteWordInDatabase(db, word);
             }
         }
@@ -571,13 +596,14 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
         return true;
     }
 
-    public List<Word> EmptyTable(Context context, String tableName) {
-        if(mDbHelper == null)
+    public void EmptyTable() {
+        if(mDbHelper == null) {
             mDbHelper = new WordReaderDbHelper(this);
+        }
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
-        String SQL = "DELETE FROM " + WordReaderContract.WordEntry.TABLE_NAME;
+        String SQL = "DELETE FROM " + WordReaderContract.WordEntry.TABLE_NAME + " WHERE " + WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY + " = '" + dictionaryPath + "'";
         db.execSQL(SQL);
-        return null;
+        return;
     }
 
     @Override
@@ -622,7 +648,7 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
                 WordReaderContract.WordEntry.COLUMN_NAME_FSPENT + " , " +
                 WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY +
                 " FROM " + WordReaderContract.WordEntry.TABLE_NAME +
-                " WHERE ";
+                " WHERE " + WordReaderContract.WordEntry.COLUMN_NAME_DICTIONARY + " = '" + dictionaryPath + "' AND " ;
         if (nativeFirst) {
             SQL += WordReaderContract.WordEntry.COLUMN_NAME_BAD;
         } else {
@@ -731,9 +757,13 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
     protected void onDestroy() {
 
         // WriteCSV(this, words, "Saved");
-        super.onDestroy();
+        progress.setTitle("Dropbox");
+        progress.setMessage("Getting list...");
+        //progress.show();
+
         WriteSQL(QuizActivity.this, "Saved");
         UpdateFile();
+        super.onDestroy();
     }
 
 
@@ -811,6 +841,10 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
     };
 
     public void onPause(){
+        progress.setTitle("Dropbox");
+        progress.setMessage("Getting list...");
+        progress.show();
+
         WriteSQL(QuizActivity.this, "Saved");
         UpdateFile();
         if(TTSnative !=null){
@@ -826,15 +860,34 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
 
     private void UpdateFile() {
         FilterRecords(0);
-        FileOutputStream outputStream;
+        File file;
+        file = new File(getApplication().getFilesDir().getPath()+ "/" + dictionaryPath + ".txt");
+         FileOutputStream outputStream = null;
         try {
-            outputStream = openFileOutput(dictionaryPath, Context.MODE_PRIVATE);
+            outputStream = new FileOutputStream(file);
+        }
+        catch(FileNotFoundException ex)
+        {
+            //Log.d(TAG, "InexistentLocalFile : " + ex.getMessage());
+        }
+        try {
+            String newContent = Utils.PrepareString(wordsToBeDiscovered);
             outputStream.write(Utils.PrepareString(wordsToBeDiscovered).getBytes());
             outputStream.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
+        DropboxUploadFile uploadFile = new DropboxUploadFile(dropboxApi, getApplication().getFilesDir().getPath()+ "/" + dictionaryPath + ".txt", handlerUpload);
+        uploadFile.execute();
+        progress.dismiss();
     }
+
+    private final Handler handlerUpload = new Handler(){
+        public void handleMessage(Message message)
+        {
+            progress.dismiss();
+        }
+    };
 
     public void OpenDoc(View view)
     {
@@ -1041,12 +1094,14 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        progress = new ProgressDialog(this);
         Intent intent = getIntent();
         FbUserId = intent.getExtras().getString("FbUserId");
         dictionaryPath = intent.getExtras().getString("LexPath");
         if(intent.getExtras().getParcelableArrayList("Lex") != null) {
             wordsToBeDiscovered = intent.getExtras().getParcelableArrayList("Lex");
         }
+        //EmptyTable();
         if(mDbHelper == null)
             mDbHelper = new WordReaderDbHelper(this);
         //EmptyTable(this, "");
@@ -1078,15 +1133,28 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
         TTSnative = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
             public void onInit(int status) {
-                TTSnative.setLanguage(Locale.GERMANY);
-                new Thread(new Runnable() {
-                    public void run() {
-                        //if (status != TextToSpeech.ERROR)
-                        {
-                            TTSnative.setLanguage(Locale.GERMANY);
+                if(dictionaryPath == "DeEn") {
+                    TTSnative.setLanguage(Locale.GERMANY);
+                    new Thread(new Runnable() {
+                        public void run() {
+                            //if (status != TextToSpeech.ERROR)
+                            {
+                                TTSnative.setLanguage(Locale.GERMANY);
+                            }
                         }
-                    }
-                });
+                    });
+                }
+                if(dictionaryPath == "FrEn") {
+                    TTSnative.setLanguage(Locale.FRENCH);
+                    new Thread(new Runnable() {
+                        public void run() {
+                            //if (status != TextToSpeech.ERROR)
+                            {
+                                TTSnative.setLanguage(Locale.FRENCH);
+                            }
+                        }
+                    });
+                }
             }
         });
 
@@ -1105,6 +1173,8 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
         Timer.setOnClickListener(timerButtonListner);
         Settings = (ImageView) findViewById( R.id.settings);
         Settings.setOnClickListener(settingsButtonListner);
+        SpeackerSwitch = (ImageView) findViewById( R.id.SpeackerSwitch);
+        SpeackerSwitch.setOnClickListener(SpeackerSwitchListner);
         HigherDifficulty = (ImageView) findViewById(R.id.difficulty_higher);
         LowerDifficulty = (ImageView) findViewById(R.id.difficulty_lower);
         LevelIndicator = (TextView) findViewById(R.id.level);
@@ -1185,6 +1255,36 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
             WriteSQL(this, "Saved");
             FilterRecords(difficulty);
         //}
+
+        AppKeyPair appKeyPair =  new AppKeyPair(ACCESS_KEY_NAME, ACCESS_SECRET_NAME);
+        AndroidAuthSession session;
+        SharedPreferences prefs = getSharedPreferences(ACCOUNT_PREFS_NAME, 0);
+        String key = prefs.getString(ACCESS_KEY_NAME, null);
+        String secret = prefs.getString(ACCESS_SECRET_NAME, null);
+
+        if(key != null && secret != null) {
+            AccessTokenPair token = new AccessTokenPair(key, secret);
+            session = new AndroidAuthSession(appKeyPair, ACCESS_TYPE, token);
+        }
+        else
+        {
+            session = new AndroidAuthSession(appKeyPair, ACCESS_TYPE);
+        }
+        dropboxApi = new DropboxAPI(session);
+
+        session = (AndroidAuthSession)dropboxApi.getSession();
+        if(session.authenticationSuccessful())
+        {
+            try{
+                session.finishAuthentication();
+                storeAuth(session);
+                //loggedIn(true);
+            } catch (IllegalStateException e)
+            {
+                Toast.makeText(this, "Dropbox auth error", Toast.LENGTH_SHORT).show();
+            }
+        }
+
         Log.e("Drive.FIle", "OpenDoc mGoogleApiClient");
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -1197,6 +1297,29 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
     // Request code to identify the response of a web request
     int HTTP_REQUEST_CODE = 98;
 
+    private void storeAuth(AndroidAuthSession session) {
+        // Store the OAuth 2 access token, if there is one.
+        String oauth2AccessToken = session.getOAuth2AccessToken();
+        if (oauth2AccessToken != null) {
+            SharedPreferences prefs = getSharedPreferences(ACCOUNT_PREFS_NAME, 0);
+            SharedPreferences.Editor edit = prefs.edit();
+            edit.putString(ACCESS_KEY_NAME, "oauth2:");
+            edit.putString(ACCESS_SECRET_NAME, oauth2AccessToken);
+            edit.commit();
+            return;
+        }
+        // Store the OAuth 1 access token, if there is one.  This is only necessary if
+        // you're still using OAuth 1.
+        AccessTokenPair oauth1AccessToken = session.getAccessTokenPair();
+        if (oauth1AccessToken != null) {
+            SharedPreferences prefs = getSharedPreferences(ACCOUNT_PREFS_NAME, 0);
+            SharedPreferences.Editor edit = prefs.edit();
+            edit.putString(ACCESS_KEY_NAME, oauth1AccessToken.key);
+            edit.putString(ACCESS_SECRET_NAME, oauth1AccessToken.secret);
+            edit.commit();
+            return;
+        }
+    }
 
     //static String currentLine = "";
     public List<Word> ReadCSV(Context context, String fileName) {
@@ -1249,14 +1372,13 @@ public class QuizActivity extends AppCompatActivity implements GoogleApiClient.C
     }
 
     private void toggle() {
-        if(nativeFirst)
-        {
-            TTSnative.speak(currentWord.Native, TextToSpeech.QUEUE_FLUSH, null);
+        if(!SpeackerSwitchMuted) {
+            if (nativeFirst) {
+                TTSnative.speak(currentWord.Native, TextToSpeech.QUEUE_FLUSH, null);
+            } else {
+                TTSforeign.speak(currentWord.Foreign, TextToSpeech.QUEUE_FLUSH, null);
+            }
         }
-        else {
-            TTSforeign.speak(currentWord.Foreign, TextToSpeech.QUEUE_FLUSH, null);
-        }
-
 
         if (mVisible) {
             hide();
